@@ -1,0 +1,17 @@
+{
+  "name": "ChauBondi",
+  "short_name": "ChauBondi",
+  "description": "Compartí el viaje al Campus Siglo 21",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A12",
+  "theme_color": "#0A0A12",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}
