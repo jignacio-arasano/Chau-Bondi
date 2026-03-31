@@ -17,8 +17,9 @@ module.exports = withCors(async (req, res) => {
       const { email, password, nombre, apellido, whatsapp } = req.body || {};
       if (!email || !password || !nombre || !apellido || !whatsapp)
         return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
-      if (!email.toLowerCase().endsWith(DOMINIO))
-        return res.status(400).json({ error: `Solo se permiten correos ${DOMINIO}` });
+      //FUNCION SOLO DOMINIO INSTITUCIONAL DESACTIVADA
+      /*if (!email.toLowerCase().endsWith(DOMINIO))
+        return res.status(400).json({ error: `Solo se permiten correos ${DOMINIO}` });*/
       if (password.length < 6)
         return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
       const waClean = whatsapp.replace(/\D/g, '');
