@@ -52,7 +52,7 @@ export default function Home() {
           </button>
 
           <div style={{ marginTop:16, padding:'14px 16px', background:'rgba(0,230,118,0.06)', border:'1px solid rgba(0,230,118,0.18)', borderRadius:10, fontSize:'0.82rem', lineHeight:1.6, color:'var(--text2)' }}>
-            <div style={{ fontWeight:700, color:'var(--green)', marginBottom:4 }}>🚀 ¡Estamos en beta y es 100% gratis!</div>
+            <div style={{ fontWeight:700, color:'var(--green)', marginBottom:4 }}>🚀 ¡Estamos en beta!</div>
             Cada viaje que publicás nos ayuda a crecer y mejorar. Cuantos más usuarios, más fácil encontrar compañeros. ¡Contáselo a tus compañeros de la Siglo!
           </div>
         </div>

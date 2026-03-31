@@ -69,11 +69,19 @@ export default function TripDetail() {
     setJoining(true);
     setError('');
     try {
-      const { checkout_url } = await api.trips.join(id);
-      window.location.href = checkout_url;
+      // 1. Le avisa al backend que te unís al viaje
+      await api.trips.join(id); 
+      
+      // 2. Vuelve a traer los datos del viaje (ahora con vos incluido y los WhatsApps desbloqueados)
+      const viajeActualizado = await api.trips.get(id); 
+      
+      // 3. Actualiza la pantalla mágicamente sin recargar
+      setViaje(viajeActualizado); 
     } catch (err) {
       setError(err.message);
-      setJoining(false);
+    } finally {
+      // 4. Apaga el estado de carga
+      setJoining(false); 
     }
   }
 
@@ -249,7 +257,7 @@ export default function TripDetail() {
             {puede_unirse && (
               <>
                 <div className="alert alert-info" style={{ fontSize: '0.82rem' }}>
-                  💳 Para ver los datos de contacto del grupo, pagás <strong>$200</strong> (sin reembolso) mediante Mercado Pago.
+                  🚀 <strong>¡Estamos en Beta!</strong> Uníte a este viaje para ver los contactos del grupo.
                 </div>
                 <button
                   className="btn btn-primary btn-full"
@@ -257,7 +265,7 @@ export default function TripDetail() {
                   disabled={joining}
                 >
                   {joining
-                    ? <><span className="spinner" style={{ width: 18, height: 18 }} /> Redirigiendo a MP…</>
+                    ? <><span className="spinner" style={{ width: 18, height: 18 }} /> Uniéndote al grupo…</>
                     : '🤝 Unirme al viaje — $200'}
                 </button>
               </>
@@ -271,7 +279,7 @@ export default function TripDetail() {
                 {confirm ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div className="alert alert-error" style={{ fontSize: '0.82rem' }}>
-                      ⚠️ ¿Seguro que querés salir? Los $200 no se reembolsan.
+                      ⚠️ ¿Seguro que querés salir? Dejarás a tu grupo con un lugar vacío.
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       <button className="btn btn-secondary" onClick={() => setConfirm(false)}>Cancelar</button>

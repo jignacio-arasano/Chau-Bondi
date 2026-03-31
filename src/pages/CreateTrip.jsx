@@ -71,7 +71,7 @@ export default function CreateTrip() {
           }}>←</button>
           <h2 style={{ fontSize: '1.3rem', letterSpacing: '0.04em' }}>PUBLICAR VIAJE</h2>
           <p style={{ color: 'var(--text2)', fontSize: '0.85rem', marginTop: 4 }}>
-            Gratis para el organizador. Pasajeros pagan $200 de servicio.
+             🚀 Versión Beta: Ayudanos a conectar a más estudiantes de la Siglo.
           </p>
         </div>
       </div>
@@ -186,8 +186,7 @@ export default function CreateTrip() {
           {/* Info */}
           <div className="alert alert-info" style={{ fontSize: '0.82rem' }}>
             <strong>¿Cómo funciona?</strong><br />
-            Publicás el viaje gratis. Cada pasajero que se una paga $200 de servicio (no reembolsable).
-            Una vez que paguen, todos ven los datos de WhatsApp para coordinar el Uber/Cabify.
+            Publicás el viaje, tus compañeros se unen y automáticamente se habilitan los datos de WhatsApp de todos para que puedan coordinar el Uber/Cabify y compartir gastos.
           </div>
 
           <button
