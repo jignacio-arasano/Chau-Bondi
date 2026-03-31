@@ -3,7 +3,7 @@ const jwt      = require('jsonwebtoken');
 const crypto   = require('crypto');
 const supabase = require('./_lib/db');
 const { withCors, withAuth } = require('./_lib/middleware');
-const { sendEmail, verificationEmailHtml } = require('./_lib/email');
+
 const { sendEmail, verificationEmailHtml, resetPasswordEmailHtml } = require('./_lib/email');
 /*const DOMINIO = '@soysiglo.21.edu.ar';*/
 
