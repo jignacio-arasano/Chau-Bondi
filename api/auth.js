@@ -14,6 +14,18 @@ module.exports = withCors(async (req, res) => {
   if (url.endsWith('/register') && req.method === 'POST') {
     
     try {
+      // 👇 CONTROL AUTOMÁTICO DE CUPO BETA 👇
+      const { count, error: countError } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true }); 
+        
+      if (count >= 250) {
+        return res.status(403).json({ 
+          error: '¡Cupo lleno! 🚀 Ya alcanzamos los 200 usuarios de la Beta. Vamos a volver a abrir las inscripciones en unos días.' 
+        });
+      }
+      // 👆 FIN DEL CONTROL DE CUPO 👆
+
       const { email, password, nombre, apellido, whatsapp } = req.body || {};
       if (!email || !password || !nombre || !apellido || !whatsapp)
         return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
