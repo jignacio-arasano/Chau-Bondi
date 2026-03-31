@@ -1,16 +1,31 @@
-{
+ {
+
   "rewrites": [
+
     { "source": "/api/auth/:path*",    "destination": "/api/auth" },
+
     { "source": "/api/trips/:path*",   "destination": "/api/trips" },
+
     { "source": "/api/trips",          "destination": "/api/trips" },
+
     { "source": "/api/ratings/:path*", "destination": "/api/ratings" },
+
     { "source": "/api/ratings",        "destination": "/api/ratings" },
+
     { "source": "/api/health",         "destination": "/api/health" },
-    { "source": "/(.*)",               "destination": "/index.html" }
+
+    { "source": "/((?!api).*)",        "destination": "/index.html" }
+
   ],
+
   "functions": {
+
     "api/**/*.js": {
+
       "maxDuration": 10
+
     }
+
   }
+
 }
