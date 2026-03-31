@@ -266,7 +266,7 @@ export default function TripDetail() {
                 >
                   {joining
                     ? <><span className="spinner" style={{ width: 18, height: 18 }} /> Uniéndote al grupo…</>
-                    : '🤝 Unirme al viaje — $200'}
+                    : '🤝 Unirme al viaje'}
                 </button>
               </>
             )}
