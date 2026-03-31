@@ -17,29 +17,47 @@ module.exports = withCors(async (req, res) => {
       const { email, password, nombre, apellido, whatsapp } = req.body || {};
       if (!email || !password || !nombre || !apellido || !whatsapp)
         return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
+      
       //FUNCION SOLO DOMINIO INSTITUCIONAL DESACTIVADA
       /*if (!email.toLowerCase().endsWith(DOMINIO))
         return res.status(400).json({ error: `Solo se permiten correos ${DOMINIO}` });*/
+      
       if (password.length < 6)
         return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
-      const waClean = whatsapp.replace(/\D/g, '');
+      
+      // Sanitización avanzada de WhatsApp
+      let waClean = whatsapp.replace(/\D/g, '');
+      
+      // Limpiar prefijos de Argentina ("549" o "54") si el usuario los incluyó por error
+      if (waClean.startsWith('549') && waClean.length >= 13) {
+        waClean = waClean.substring(3);
+      } else if (waClean.startsWith('54') && waClean.length >= 12) {
+        waClean = waClean.substring(2);
+      }
+
       if (waClean.length < 10)
-        return res.status(400).json({ error: 'Número de WhatsApp inválido.' });
+        return res.status(400).json({ error: 'Número de WhatsApp inválido (ingresá tu código de área seguido de tu número, sin el +54).' });
+
       const { data: existing } = await supabase.from('profiles').select('id').eq('email', email.toLowerCase()).single();
       if (existing) return res.status(409).json({ error: 'Ya existe una cuenta con ese correo.' });
+      
       const password_hash        = await bcrypt.hash(password, 12);
       const verification_token   = crypto.randomBytes(32).toString('hex');
       const verification_expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      
       const { data: profile, error } = await supabase.from('profiles')
         .insert({ email: email.toLowerCase(), password_hash, nombre: nombre.trim(),
           apellido: apellido.trim(), whatsapp: waClean,
           email_verified: false, verification_token, verification_expires })
         .select('id, email, nombre, apellido').single();
+      
       if (error) throw error;
+      
       const verifyUrl = `${process.env.FRONTEND_URL}/verify?token=${verification_token}`;
       await sendEmail({ to: profile.email, toName: `${profile.nombre} ${profile.apellido}`,
         subject: '✅ Verificá tu cuenta de ChauBondi',
         html: verificationEmailHtml({ nombre: profile.nombre, verifyUrl }) });
+      
       return res.status(201).json({ message: 'Cuenta creada. Revisá tu correo para verificarla.' });
     } catch (err) {
       console.error('Register error:', err);

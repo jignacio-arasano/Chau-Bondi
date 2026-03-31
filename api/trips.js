@@ -52,8 +52,8 @@ module.exports = withAuth(async (req, res) => {
         .gt('cupos_disponibles', 0)
         .gt('fecha_hora', new Date().toISOString())
         .order('fecha_hora', { ascending: true })
-        .order('cupos_disponibles', { ascending: true });
-
+        .order('cupos_disponibles', { ascending: true })
+        .limit(50); // <--- LÍNEA AGREGADA: Trae máximo los 50 más próximos
       if (tipo)  query = query.eq('tipo', tipo);
       if (zona)  query = query.eq('zona_comun', zona);
       if (fecha) {
@@ -84,7 +84,9 @@ module.exports = withAuth(async (req, res) => {
       if (isNaN(fechaViaje.getTime()) || fechaViaje <= new Date())
         return res.status(400).json({ error: 'La fecha debe ser en el futuro.' });
 
-      const fechaDia = fechaViaje.toISOString().slice(0, 10);
+      // Función que resta 3 horas para calcular el "Día de Argentina" (GMT-3) correctamente
+      const getDiaArg = (dateObj) => new Date(dateObj.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const fechaDiaArg = getDiaArg(fechaViaje);
 
       // Duplicado del creador
       const { data: misViajes } = await supabase.from('viajes')
@@ -92,7 +94,7 @@ module.exports = withAuth(async (req, res) => {
         .eq('id_creador', req.user.id).eq('tipo', tipo).eq('activo', true)
         .gt('cupos_disponibles', 0).gt('fecha_hora', new Date().toISOString());
 
-      if ((misViajes || []).some(v => v.fecha_hora.slice(0, 10) === fechaDia))
+      if ((misViajes || []).some(v => getDiaArg(new Date(v.fecha_hora)) === fechaDiaArg))
         return res.status(409).json({ error: 'Ya tenés un viaje del mismo tipo publicado para ese día.' });
 
       // Duplicado global (misma zona + menos de 15 min)
@@ -103,7 +105,7 @@ module.exports = withAuth(async (req, res) => {
 
       const MINS_15 = 15 * 60 * 1000;
       const hayDuplicado = (viajesZona || []).some(v => {
-        if (v.fecha_hora.slice(0, 10) !== fechaDia) return false;
+        if (getDiaArg(new Date(v.fecha_hora)) !== fechaDiaArg) return false;
         return Math.abs(new Date(v.fecha_hora).getTime() - fechaViaje.getTime()) < MINS_15;
       });
 
@@ -132,32 +134,31 @@ module.exports = withAuth(async (req, res) => {
   if (!idMatch) return res.status(404).json({ error: 'Ruta no encontrada.' });
 
   const id     = idMatch[1];
-  const action = idMatch[2]; // '/join', '/leave', o undefined
+  const action = idMatch[2];
 
   // ── POST /api/trips/:id/join ──────────────────────────────────────────────
+
   if (action === '/join' && method === 'POST') {
     try {
-      const { data: viaje, error: vErr } = await supabase.from('viajes')
-        .select('id, id_creador, cupos_disponibles, activo, fecha_hora').eq('id', id).single();
+      // Validaciones previas básicas
+      const { data: v } = await supabase.from('viajes').select('id_creador, fecha_hora').eq('id', id).single();
+      if (!v) return res.status(404).json({ error: 'Viaje no encontrado.' });
+      if (v.id_creador === req.user.id) return res.status(400).json({ error: 'No podés unirte a tu propio viaje.' });
+      if (new Date(v.fecha_hora) <= new Date()) return res.status(400).json({ error: 'Este viaje ya pasó.' });
 
-      if (vErr || !viaje) return res.status(404).json({ error: 'Viaje no encontrado.' });
-      if (viaje.id_creador === req.user.id) return res.status(400).json({ error: 'No podés unirte a tu propio viaje.' });
-      if (!viaje.activo) return res.status(400).json({ error: 'Este viaje ya no está activo.' });
-      if (viaje.cupos_disponibles <= 0) return res.status(400).json({ error: 'No hay cupos disponibles.' });
-      if (new Date(viaje.fecha_hora) <= new Date()) return res.status(400).json({ error: 'Este viaje ya pasó.' });
+      // Llamada atómica a la base de datos (Supabase se encarga de que nadie se cuele)
+      const { error: rpcError } = await supabase.rpc('join_viaje', { 
+        p_id_viaje: id, 
+        p_id_usuario: req.user.id 
+      });
 
-      const { data: existente } = await supabase.from('participantes')
-        .select('id, estado_pago').eq('id_viaje', id).eq('id_usuario', req.user.id).single();
-
-      if (existente?.estado_pago) return res.status(409).json({ error: 'Ya sos parte de este viaje.' });
-
-      if (existente) {
-        await supabase.from('participantes').update({ estado_pago: true }).eq('id', existente.id);
-      } else {
-        await supabase.from('participantes').insert({ id_viaje: id, id_usuario: req.user.id, estado_pago: true });
+      if (rpcError) {
+        if (rpcError.message.includes('No hay cupos')) {
+          return res.status(400).json({ error: 'El viaje ya está lleno o inactivo.' });
+        }
+        return res.status(409).json({ error: 'Error al unirse. Es probable que ya seas parte del viaje.' });
       }
 
-      await supabase.from('viajes').update({ cupos_disponibles: viaje.cupos_disponibles - 1 }).eq('id', id);
       return res.json({ joined: true });
     } catch (err) {
       console.error('Join error:', err);
