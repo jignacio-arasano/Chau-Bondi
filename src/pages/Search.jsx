@@ -4,8 +4,11 @@ import { api } from '../api';
 import TripCard from '../components/TripCard';
 
 const ZONAS = [
-  'Patio Olmos / Buen Pastor / Plaza España',
-  'Plaza San Martín / Terminal T2',
+  'Patio Olmos',
+  'Buen Pastor',
+  'Plaza España',
+  'Plaza San Martín',
+  'Terminal T2',
   'Plaza Colón',
   'Plaza Alberdi',
   'Mujer Urbana / Parque de las Naciones',

@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 
 const ZONAS = [
-  'Patio Olmos / Buen Pastor / Plaza España',
-  'Plaza San Martín / Terminal T2',
+  'Patio Olmos',
+  'Buen Pastor',
+  'Plaza España',
+  'Plaza San Martín',
+  'Terminal T2',
   'Plaza Colón',
   'Plaza Alberdi',
   'Mujer Urbana / Parque de las Naciones',
