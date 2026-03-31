@@ -110,7 +110,25 @@ export default function TripDetail() {
       setConfirm(false);
     }
   }
+  
+  function handleShare() {
+    const origen = tipo === 'IDA' ? zona_comun.split('/')[0].trim() : 'Campus Siglo 21';
+    const destino = tipo === 'IDA' ? 'Campus Siglo 21' : zona_comun.split('/')[0].trim();
+    
+    // Armamos el mensajito que va a llegar por WhatsApp
+    const texto = `¡Sumate a mi viaje en ChauBondi! 🚌\n📍 De: ${origen}\n🏁 A: ${destino}\n🕒 Horario: ${horaStr} hs\n\n👉 Reservá tu lugar acá: ${window.location.href}`;
 
+    // API Nativa de celulares (abre el menú de compartir de iOS/Android)
+    if (navigator.share) {
+      navigator.share({
+        title: 'Viaje en ChauBondi',
+        text: texto
+      }).catch((err) => console.log('Error al compartir', err));
+    } else {
+      // Fallback para PC o navegadores viejos: Abre WhatsApp Web directo
+      window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+    }
+  }
   if (loading) return (
     <div className="loading-screen">
       <div className="spinner" />
@@ -254,10 +272,22 @@ export default function TripDetail() {
         {/* Acciones */}
         {activo && !yaFue && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            
+            {/* BOTÓN DE COMPARTIR (Solo visible si estás en el viaje y hay lugar) */}
+            {(es_creador || ya_es_pasajero) && cupos_disponibles > 0 && (
+              <button 
+                className="btn btn-whatsapp btn-full" 
+                onClick={handleShare}
+                style={{ marginBottom: '8px' }}
+              >
+                📲 Invitar compañeros por WhatsApp
+              </button>
+            )}
+
             {puede_unirse && (
               <>
                 <div className="alert alert-info" style={{ fontSize: '0.82rem' }}>
-                  🚀 <strong>¡Estamos en Beta!</strong> Uníte a este viaje para ver los contactos del grupo.
+                  🚀 <strong>¡Estamos en Beta!</strong> Al unirte vas a acceder al instante al WhatsApp del grupo para poder organizar el viaje.
                 </div>
                 <button
                   className="btn btn-primary btn-full"
@@ -289,7 +319,7 @@ export default function TripDetail() {
                     </div>
                   </div>
                 ) : (
-                  <button className="btn btn-danger" onClick={handleLeave}>
+                  <button className="btn btn-danger" onClick={() => setConfirm(true)}>
                     Salir del viaje
                   </button>
                 )}
@@ -304,7 +334,7 @@ export default function TripDetail() {
                 {confirm ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div className="alert alert-error" style={{ fontSize: '0.82rem' }}>
-                      ⚠️ ¿Cancelar el viaje? Los pasajeros que pagaron quedarán sin grupo.
+                      ⚠️ ¿Cancelar el viaje? Los pasajeros que ya se unieron quedarán sin grupo.
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       <button className="btn btn-secondary" onClick={() => setConfirm(false)}>No, mantenerlo</button>
@@ -314,7 +344,7 @@ export default function TripDetail() {
                     </div>
                   </div>
                 ) : (
-                  <button className="btn btn-danger" onClick={handleDelete}>
+                  <button className="btn btn-danger" onClick={() => setConfirm(true)}>
                     Cancelar viaje
                   </button>
                 )}
