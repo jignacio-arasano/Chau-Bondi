@@ -6,7 +6,7 @@
     { "source": "/api/ratings/:path*", "destination": "/api/ratings" },
     { "source": "/api/ratings",        "destination": "/api/ratings" },
     { "source": "/api/health",         "destination": "/api/health" },
-    { "source": "/((?!api).*)",        "destination": "/index.html" }
+    { "source": "/(.*)",               "destination": "/index.html" }
   ],
   "functions": {
     "api/**/*.js": {

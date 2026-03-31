@@ -4,8 +4,8 @@ const crypto   = require('crypto');
 const supabase = require('./_lib/db');
 const { withCors, withAuth } = require('./_lib/middleware');
 const { sendEmail, verificationEmailHtml } = require('./_lib/email');
-
-const DOMINIO = '@soysiglo.21.edu.ar';
+const { sendEmail, verificationEmailHtml, resetPasswordEmailHtml } = require('./_lib/email');
+/*const DOMINIO = '@soysiglo.21.edu.ar';*/
 
 module.exports = withCors(async (req, res) => {
   const url = req.url.split('?')[0].replace(/\/$/, '');
@@ -123,6 +123,66 @@ module.exports = withCors(async (req, res) => {
       return res.status(500).json({ error: 'Error al verificar la cuenta.' });
     }
   }
+  // ── POST /api/auth/forgot-password ─────────────────────────────────────────
+  if (url.endsWith('/forgot-password') && req.method === 'POST') {
+    try {
+      const { email } = req.body || {};
+      if (!email) return res.status(400).json({ error: 'Email requerido.' });
 
+      const { data: p } = await supabase.from('profiles')
+        .select('id, nombre, apellido, email').eq('email', email.toLowerCase()).single();
+
+      // Siempre devolvemos 200 para no revelar si el mail existe por seguridad
+      if (!p) return res.json({ message: 'Si ese correo existe, recibirás un link para restablecer tu contraseña.' });
+
+      const reset_token   = crypto.randomBytes(32).toString('hex');
+      const reset_expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hora
+
+      await supabase.from('profiles')
+        .update({ reset_token, reset_expires })
+        .eq('id', p.id);
+
+      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${reset_token}`;
+      await sendEmail({
+        to:      p.email,
+        toName:  `${p.nombre} ${p.apellido}`,
+        subject: '🔑 Restablecé tu contraseña de ChauBondi',
+        html:    resetPasswordEmailHtml({ nombre: p.nombre, resetUrl })
+      });
+
+      return res.json({ message: 'Si ese correo existe, recibirás un link para restablecer tu contraseña.' });
+    } catch (err) {
+      console.error('Forgot password error:', err);
+      return res.status(500).json({ error: 'Error al procesar la solicitud.' });
+    }
+  }
+
+  // ── POST /api/auth/reset-password ──────────────────────────────────────────
+  if (url.endsWith('/reset-password') && req.method === 'POST') {
+    try {
+      const { token, password } = req.body || {};
+      if (!token || !password)
+        return res.status(400).json({ error: 'Token y contraseña requeridos.' });
+      if (password.length < 6)
+        return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+
+      const { data: p } = await supabase.from('profiles')
+        .select('id, reset_expires').eq('reset_token', token).single();
+
+      if (!p) return res.status(400).json({ error: 'Token inválido o ya utilizado.' });
+      if (new Date(p.reset_expires) < new Date())
+        return res.status(400).json({ error: 'El link expiró. Solicitá uno nuevo.' });
+
+      const password_hash = await bcrypt.hash(password, 12);
+      await supabase.from('profiles')
+        .update({ password_hash, reset_token: null, reset_expires: null })
+        .eq('id', p.id);
+
+      return res.json({ message: '✅ Contraseña actualizada. Ya podés iniciar sesión.' });
+    } catch (err) {
+      console.error('Reset password error:', err);
+      return res.status(500).json({ error: 'Error al restablecer la contraseña.' });
+    }
+  }
   return res.status(404).json({ error: 'Ruta no encontrada.' });
 });
