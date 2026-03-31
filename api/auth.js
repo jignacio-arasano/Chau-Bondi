@@ -12,12 +12,7 @@ module.exports = withCors(async (req, res) => {
 
   // ── POST /api/auth/register ────────────────────────────────────────────────
   if (url.endsWith('/register') && req.method === 'POST') {
-    // Registro desactivado en fase beta
-    return res.status(403).json({
-      error: 'El registro está temporalmente desactivado. Contactá al administrador para obtener acceso.'
-    });
-
-    /* --- Descomentar cuando se abra el registro ---
+    
     try {
       const { email, password, nombre, apellido, whatsapp } = req.body || {};
       if (!email || !password || !nombre || !apellido || !whatsapp)
@@ -49,7 +44,7 @@ module.exports = withCors(async (req, res) => {
       console.error('Register error:', err);
       return res.status(500).json({ error: 'Error al crear la cuenta.' });
     }
-    */
+    
   }
 
   // ── POST /api/auth/login ───────────────────────────────────────────────────
