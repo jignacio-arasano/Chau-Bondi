@@ -12,10 +12,21 @@ export default function Home() {
   const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
-    Promise.all([api.trips.list({}), api.ratings.pending()])
-      .then(([trips, p]) => { setProximos(trips.slice(0, 5)); setPending(p); })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    // 1. Cargamos los viajes y cortamos el loading INMEDIATAMENTE
+    api.trips.list({})
+      .then(trips => { 
+        setProximos(trips.slice(0, 5)); 
+        setLoading(false); // ¡La pantalla ya se muestra!
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+
+    // 2. Calculamos las calificaciones de fondo, sin bloquear la pantalla
+    api.ratings.pending()
+      .then(p => setPending(p))
+      .catch(console.error);
   }, []);
 
   const hora   = new Date().getHours();
