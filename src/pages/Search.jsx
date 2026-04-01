@@ -17,39 +17,45 @@ const ZONAS = [
 ];
 
 export default function Search() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [tipo,   setTipo]   = useState(searchParams.get('tipo') || '');
   const [zona,   setZona]   = useState('');
   const [fecha,  setFecha]  = useState('');
   const [trips,  setTrips]  = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(true); // Arranca en true para buscar ni bien entramos
 
-  // Buscar automáticamente si viene con tipo desde Home
+  // Este useEffect se ejecuta al cargar la página Y CADA VEZ que cambian los filtros
   useEffect(() => {
-    if (searchParams.get('tipo')) {
-      buscar();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let isMounted = true;
 
-  async function buscar() {
-    setLoading(true);
-    setSearched(true);
-    try {
-      const params = {};
-      if (tipo)  params.tipo  = tipo;
-      if (zona)  params.zona  = zona;
-      if (fecha) params.fecha = fecha;
-      const data = await api.trips.list(params);
-      setTrips(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+    async function fetchTrips() {
+      setLoading(true);
+      try {
+        const params = {};
+        if (tipo)  params.tipo  = tipo;
+        if (zona)  params.zona  = zona;
+        if (fecha) params.fecha = fecha;
+        
+        const data = await api.trips.list(params);
+        
+        if (isMounted) {
+          setTrips(data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     }
-  }
+
+    fetchTrips();
+
+    // Cleanup function por si el usuario cambia de página rápido
+    return () => { isMounted = false; };
+  }, [tipo, zona, fecha]); // 👈 La magia está acá: escucha los cambios de estas 3 variables
 
   function handleTipo(t) {
     setTipo(prev => prev === t ? '' : t);
@@ -106,11 +112,8 @@ export default function Search() {
               value={fecha}
               min={today}
               onChange={e => setFecha(e.target.value)}
-              style={{ flex: 1, fontSize: '0.9rem', colorScheme: 'dark' }}
+              style={{ width: '100%', fontSize: '0.9rem', colorScheme: 'dark' }}
             />
-            <button className="btn btn-primary" onClick={buscar} style={{ padding: '13px 20px' }}>
-              Buscar
-            </button>
           </div>
         </div>
       </div>
@@ -120,12 +123,6 @@ export default function Search() {
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
             <div className="spinner" />
-          </div>
-        ) : !searched ? (
-          <div className="empty-state">
-            <div className="icon">🔍</div>
-            <h3 style={{ fontFamily: 'var(--font-head)', fontSize: '1.4rem' }}>BUSCÁ TU VIAJE</h3>
-            <p>Usá los filtros de arriba para encontrar compañeros.</p>
           </div>
         ) : trips.length === 0 ? (
           <div className="empty-state">

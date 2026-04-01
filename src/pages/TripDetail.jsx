@@ -38,7 +38,7 @@ function MemberRow({ member, puedeVerWA }) {
         </a>
       ) : (
         <span style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>
-          🔒 Pagá para ver
+          🔒 Unite para ver
         </span>
       )}
     </div>
