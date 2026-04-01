@@ -69,18 +69,12 @@ export default function TripDetail() {
     setJoining(true);
     setError('');
     try {
-      // 1. Le avisa al backend que te unís al viaje
       await api.trips.join(id); 
-      
-      // 2. Vuelve a traer los datos del viaje (ahora con vos incluido y los WhatsApps desbloqueados)
       const viajeActualizado = await api.trips.get(id); 
-      
-      // 3. Actualiza la pantalla mágicamente sin recargar
       setViaje(viajeActualizado); 
     } catch (err) {
       setError(err.message);
     } finally {
-      // 4. Apaga el estado de carga
       setJoining(false); 
     }
   }
@@ -112,23 +106,22 @@ export default function TripDetail() {
   }
   
   function handleShare() {
-    const origen = tipo === 'IDA' ? zona_comun.split('/')[0].trim() : 'Campus Siglo 21';
-    const destino = tipo === 'IDA' ? 'Campus Siglo 21' : zona_comun.split('/')[0].trim();
+    const origen = viaje.tipo === 'IDA' ? viaje.zona_comun.split('/')[0].trim() : 'Campus Siglo 21';
+    const destino = viaje.tipo === 'IDA' ? 'Campus Siglo 21' : viaje.zona_comun.split('/')[0].trim();
+    const horaStr = new Date(viaje.fecha_hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
     
-    // Armamos el mensajito que va a llegar por WhatsApp
     const texto = `¡Sumate a mi viaje en ChauBondi! 🚌\n📍 De: ${origen}\n🏁 A: ${destino}\n🕒 Horario: ${horaStr} hs\n\n👉 Reservá tu lugar acá: ${window.location.href}`;
 
-    // API Nativa de celulares (abre el menú de compartir de iOS/Android)
     if (navigator.share) {
       navigator.share({
         title: 'Viaje en ChauBondi',
         text: texto
       }).catch((err) => console.log('Error al compartir', err));
     } else {
-      // Fallback para PC o navegadores viejos: Abre WhatsApp Web directo
       window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
     }
   }
+
   if (loading) return (
     <div className="loading-screen">
       <div className="spinner" />
@@ -148,7 +141,7 @@ export default function TripDetail() {
   );
 
   const { tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo,
-          profiles, participantes, creador_detalle,
+          profiles, participantes, creador_detalle, pasajeros_minimos,
           puede_unirse, es_creador, ya_es_pasajero } = viaje;
 
   const fecha = new Date(fecha_hora);
@@ -163,6 +156,12 @@ export default function TripDetail() {
   const yaFue = fecha < new Date();
 
   const totalOcupados = 3 - cupos_disponibles;
+
+  // Lógica de pasajeros mínimos
+  const pasajerosActuales = totalOcupados; 
+  const minRequerido = pasajeros_minimos || 1;
+  const viajeConfirmado = pasajerosActuales >= minRequerido;
+  const faltan = minRequerido - pasajerosActuales;
 
   // Construir lista completa de miembros
   const miembros = [
@@ -273,7 +272,20 @@ export default function TripDetail() {
         {activo && !yaFue && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             
-            {/* BOTÓN DE COMPARTIR (Solo visible si estás en el viaje y hay lugar) */}
+            {/* Cartel de Condición de Salida */}
+            <div style={{ marginBottom: '4px' }}>
+              {viajeConfirmado ? (
+                <div className="alert alert-success" style={{ fontSize: '0.82rem', textAlign: 'center' }}>
+                  ✅ <strong>¡Viaje Confirmado!</strong> Ya se alcanzó el mínimo de pasajeros para salir.
+                </div>
+              ) : (
+                <div className="alert alert-warning" style={{ fontSize: '0.82rem', textAlign: 'center', backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeeba' }}>
+                  ⏳ <strong>Esperando gente:</strong> Faltan {faltan} persona{faltan > 1 ? 's' : ''} más para confirmar este viaje.
+                </div>
+              )}
+            </div>
+
+            {/* BOTÓN DE COMPARTIR */}
             {(es_creador || ya_es_pasajero) && cupos_disponibles > 0 && (
               <button 
                 className="btn btn-whatsapp btn-full" 
@@ -286,9 +298,6 @@ export default function TripDetail() {
 
             {puede_unirse && (
               <>
-                <div className="alert alert-info" style={{ fontSize: '0.82rem' }}>
-                  🚀 <strong>¡Estamos en Beta!</strong> Al unirte vas a acceder al instante al WhatsApp del grupo para poder organizar el viaje.
-                </div>
                 <button
                   className="btn btn-primary btn-full"
                   onClick={handleJoin}
@@ -303,9 +312,6 @@ export default function TripDetail() {
 
             {ya_es_pasajero && (
               <>
-                <div className="alert alert-success">
-                  ✅ ¡Sos parte de este viaje! Coordiná con tus compañeros por WhatsApp.
-                </div>
                 {confirm ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div className="alert alert-error" style={{ fontSize: '0.82rem' }}>
@@ -328,9 +334,6 @@ export default function TripDetail() {
 
             {es_creador && (
               <>
-                <div className="alert alert-success">
-                  🎉 Este es tu viaje. Esperá que se unan pasajeros.
-                </div>
                 {confirm ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div className="alert alert-error" style={{ fontSize: '0.82rem' }}>

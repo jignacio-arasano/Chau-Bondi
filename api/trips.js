@@ -12,7 +12,7 @@ module.exports = withAuth(async (req, res) => {
   if (path === '/my/created' && method === 'GET') {
     try {
       const { data, error } = await supabase.from('viajes')
-        .select('id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at')
+        .select('id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos')
         .eq('id_creador', req.user.id)
         .order('fecha_hora', { ascending: false });
       if (error) throw error;
@@ -27,7 +27,7 @@ module.exports = withAuth(async (req, res) => {
     try {
       const { data, error } = await supabase.from('participantes')
         .select(`id, estado_pago, created_at,
-          viajes:id_viaje ( id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo,
+          viajes:id_viaje ( id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, pasajeros_minimos,
             profiles:id_creador ( nombre, apellido, rating_promedio ) )`)
         .eq('id_usuario', req.user.id)
         .order('created_at', { ascending: false });
@@ -46,14 +46,14 @@ module.exports = withAuth(async (req, res) => {
 
       let query = supabase
         .from('viajes')
-        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at,
+        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos,
           profiles:id_creador ( id, nombre, apellido, rating_promedio )`)
         .eq('activo', true)
         .gt('cupos_disponibles', 0)
         .gt('fecha_hora', new Date().toISOString())
         .order('fecha_hora', { ascending: true })
         .order('cupos_disponibles', { ascending: true })
-        .limit(50); // <--- LÍNEA AGREGADA: Trae máximo los 50 más próximos
+        .limit(50);
       if (tipo)  query = query.eq('tipo', tipo);
       if (zona)  query = query.eq('zona_comun', zona);
       if (fecha) {
@@ -73,7 +73,8 @@ module.exports = withAuth(async (req, res) => {
   // ── POST /api/trips — crear viaje ─────────────────────────────────────────
   if (path === '/' && method === 'POST') {
     try {
-      const { tipo, zona_comun, barrio, fecha_hora } = req.body || {};
+      // 👇 RECIBIMOS EL NUEVO PARÁMETRO
+      const { tipo, zona_comun, barrio, fecha_hora, pasajeros_minimos } = req.body || {};
 
       if (!tipo || !zona_comun || !barrio || !fecha_hora)
         return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
@@ -83,6 +84,9 @@ module.exports = withAuth(async (req, res) => {
       const fechaViaje = new Date(fecha_hora);
       if (isNaN(fechaViaje.getTime()) || fechaViaje <= new Date())
         return res.status(400).json({ error: 'La fecha debe ser en el futuro.' });
+        
+      // Parseamos el mínimo, si no mandan nada, por defecto es 1
+      const minRequerido = pasajeros_minimos ? parseInt(pasajeros_minimos, 10) : 1;
 
       // Función que resta 3 horas para calcular el "Día de Argentina" (GMT-3) correctamente
       const getDiaArg = (dateObj) => new Date(dateObj.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -114,10 +118,18 @@ module.exports = withAuth(async (req, res) => {
           error: 'Ya existe un viaje desde/hacia esa zona en ese horario (menos de 15 min). Buscalo en la lista y unite.'
         });
 
+      // 👇 INSERTAMOS CON EL PASAJEROS_MINIMOS
       const { data: viaje, error } = await supabase.from('viajes')
-        .insert({ id_creador: req.user.id, tipo, zona_comun, barrio: barrio.trim(),
-          fecha_hora: fechaViaje.toISOString(), cupos_disponibles: 3 })
-        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at,
+        .insert({ 
+          id_creador: req.user.id, 
+          tipo, 
+          zona_comun, 
+          barrio: barrio.trim(),
+          fecha_hora: fechaViaje.toISOString(), 
+          cupos_disponibles: 3,
+          pasajeros_minimos: minRequerido 
+        })
+        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos,
           profiles:id_creador ( id, nombre, apellido, rating_promedio )`)
         .single();
 
@@ -137,16 +149,13 @@ module.exports = withAuth(async (req, res) => {
   const action = idMatch[2];
 
   // ── POST /api/trips/:id/join ──────────────────────────────────────────────
-
   if (action === '/join' && method === 'POST') {
     try {
-      // Validaciones previas básicas
       const { data: v } = await supabase.from('viajes').select('id_creador, fecha_hora').eq('id', id).single();
       if (!v) return res.status(404).json({ error: 'Viaje no encontrado.' });
       if (v.id_creador === req.user.id) return res.status(400).json({ error: 'No podés unirte a tu propio viaje.' });
       if (new Date(v.fecha_hora) <= new Date()) return res.status(400).json({ error: 'Este viaje ya pasó.' });
 
-      // Llamada atómica a la base de datos (Supabase se encarga de que nadie se cuele)
       const { error: rpcError } = await supabase.rpc('join_viaje', { 
         p_id_viaje: id, 
         p_id_usuario: req.user.id 
@@ -190,7 +199,7 @@ module.exports = withAuth(async (req, res) => {
   if (!action && method === 'GET') {
     try {
       const { data: viaje, error } = await supabase.from('viajes')
-        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at,
+        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos,
           profiles:id_creador ( id, nombre, apellido, rating_promedio )`)
         .eq('id', id).single();
 

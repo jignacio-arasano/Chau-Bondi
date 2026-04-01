@@ -24,6 +24,9 @@ export default function CreateTrip() {
     fecha: '',
     hora: ''
   });
+  // 👇 NUEVO ESTADO PARA EL MÍNIMO DE PASAJEROS
+  const [pasajerosMinimos, setPasajerosMinimos] = useState('1'); 
+  
   const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +49,8 @@ export default function CreateTrip() {
         tipo:       form.tipo,
         zona_comun: form.zona_comun,
         barrio:     form.barrio,
-        fecha_hora
+        fecha_hora,
+        pasajeros_minimos: parseInt(pasajerosMinimos, 10) // 👇 LO MANDAMOS AL BACKEND
       });
       navigate(`/trip/${viaje.id}`, { replace: true });
     } catch (err) {
@@ -184,6 +188,22 @@ export default function CreateTrip() {
                 style={{ colorScheme: 'dark' }}
               />
             </div>
+          </div>
+
+          {/* 👇 NUEVO SELECTOR: Condición de salida */}
+          <div className="segment" style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '8px', display: 'block' }}>
+              Condición para salir (además de vos):
+            </label>
+            <select 
+              className="input" 
+              value={pasajerosMinimos} 
+              onChange={e => setPasajerosMinimos(e.target.value)}
+            >
+              <option value="1">🚕 Salgo con 1 persona más (Auto de 2)</option>
+              <option value="2">🚗 Salgo con 2 personas más (Auto de 3)</option>
+              <option value="3">🚐 Salgo solo si llenamos el auto (Auto de 4)</option>
+            </select>
           </div>
 
           {/* Info */}
