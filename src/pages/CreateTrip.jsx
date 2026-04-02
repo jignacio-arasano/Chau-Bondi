@@ -2,47 +2,45 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 
-const ZONAS = [
-  'Patio Olmos',
-  'Buen Pastor',
-  'Plaza España',
-  'Plaza San Martín',
-  'Terminal T2',
-  'Plaza Colón',
-  'Plaza Alberdi',
-  'Mujer Urbana / Parque de las Naciones',
-  'Paseo del Jockey',
-  'Plaza Rivadavia',
-  'Farmacity de la Chacabuco',
-  'Chacabuco e Illia',
-  'Buenos Aires y Estrada',
-  'Rondeau y Paraná'
-];
+const ZONAS_POR_BARRIO = {
+  'Nueva Córdoba': [
+    'Patio Olmos', 'Buen Pastor', 'Plaza España', 
+    'Farmacity de la Chacabuco', 'Chacabuco e Illia', 
+    'Buenos Aires y Estrada', 'Rondeau y Paraná'
+  ],
+  'Centro': [
+    'Patio Olmos', 'Plaza San Martín', 'Terminal T2'
+  ],
+  'Alberdi': ['Plaza Colón'],
+  'General Paz': ['Plaza Alberdi'],
+  'Alta Córdoba': ['Plaza Rivadavia'],
+  'Zona Sur (Barrio Jardín)': ['Paseo del Jockey'],
+  'Zona Norte (Cerro / Urca)': ['Mujer Urbana / Parque de las Naciones']
+};
 
 export default function CreateTrip() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     tipo: 'IDA',
-    zona_comun: '',
-    barrio: '',
+    zona_comun: '', // Este es el punto de encuentro final
+    barrio: '',     // Este es el "barrio/referencia" escrito a mano (ej: Frente a Starbucks)
     fecha: '',
     hora: ''
   });
   
+  const [barrioEncuentro, setBarrioEncuentro] = useState(''); // Estado para el primer desplegable
+
   const [pasajerosMinimos, setPasajerosMinimos] = useState('1'); 
   const [acompanantes, setAcompanantes] = useState('0');
   
   const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Efecto dinámico para ajustar la condición si cambian los acompañantes
   useEffect(() => {
     const ac = parseInt(acompanantes, 10);
     const pm = parseInt(pasajerosMinimos, 10);
     const maxPermitido = 3 - ac;
     
-    // Si el usuario tenía puesto "pedir 3 personas" pero ahora dijo que va con 1 amigo, 
-    // lo bajamos automáticamente a 2 para que no se rompa la matemática.
     if (pm > maxPermitido) {
       setPasajerosMinimos(maxPermitido.toString());
     }
@@ -53,14 +51,18 @@ export default function CreateTrip() {
     setError('');
   }
 
+  // Cuando cambian el barrio, borramos el punto de encuentro viejo para que no quede inconsistente
+  function handleBarrioChange(e) {
+    setBarrioEncuentro(e.target.value);
+    setForm(f => ({ ...f, zona_comun: '' }));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.zona_comun) { setError('Seleccioná una zona común.'); return; }
+    if (!form.zona_comun) { setError('Seleccioná un punto de encuentro específico.'); return; }
     if (!form.fecha || !form.hora) { setError('Ingresá fecha y hora.'); return; }
 
     const fecha_hora = new Date(`${form.fecha}T${form.hora}:00`).toISOString();
-    
-    // Si quedan 0 lugares libres (acompanantes = 2), por defecto se pide 1 pasajero más para llenarlo
     const minReq = acompanantes === '2' ? 1 : parseInt(pasajerosMinimos, 10);
 
     setLoading(true);
@@ -93,14 +95,9 @@ export default function CreateTrip() {
         background: 'var(--bg2)'
       }}>
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
-          <button onClick={() => navigate(-1)} style={{
-            background: 'none', border: 'none', color: 'var(--text2)',
-            fontSize: '1.4rem', cursor: 'pointer', padding: 0, marginBottom: 12
-          }}>←</button>
+          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'var(--text2)', fontSize: '1.4rem', cursor: 'pointer', padding: 0, marginBottom: 12 }}>←</button>
           <h2 style={{ fontSize: '1.3rem', letterSpacing: '0.04em' }}>PUBLICAR VIAJE</h2>
-          <p style={{ color: 'var(--text2)', fontSize: '0.85rem', marginTop: 4 }}>
-             🚀 Versión Beta: Ayudanos a conectar a más estudiantes de la Siglo.
-          </p>
+          <p style={{ color: 'var(--text2)', fontSize: '0.85rem', marginTop: 4 }}>🚀 Versión Beta: Ayudanos a conectar a más estudiantes de la Siglo.</p>
         </div>
       </div>
 
@@ -111,16 +108,8 @@ export default function CreateTrip() {
           <div className="input-group">
             <label className="label">Tipo de viaje</label>
             <div className="segment">
-              <button
-                type="button"
-                className={`segment-btn ${esIda ? 'active' : ''}`}
-                onClick={() => setForm(f => ({ ...f, tipo: 'IDA' }))}
-              >🎓 Ida al Campus</button>
-              <button
-                type="button"
-                className={`segment-btn ${!esIda ? 'active' : ''}`}
-                onClick={() => setForm(f => ({ ...f, tipo: 'VUELTA' }))}
-              >🏠 Vuelta a casa</button>
+              <button type="button" className={`segment-btn ${esIda ? 'active' : ''}`} onClick={() => setForm(f => ({ ...f, tipo: 'IDA' }))}>🎓 Ida al Campus</button>
+              <button type="button" className={`segment-btn ${!esIda ? 'active' : ''}`} onClick={() => setForm(f => ({ ...f, tipo: 'VUELTA' }))}>🏠 Vuelta a casa</button>
             </div>
           </div>
 
@@ -129,9 +118,7 @@ export default function CreateTrip() {
               <span>{esIda ? '📍' : '🎓'}</span>
               <div>
                 <div style={{ color: 'var(--text2)', fontSize: '0.75rem' }}>ORIGEN</div>
-                <div style={{ fontWeight: 600 }}>
-                  {esIda ? (form.zona_comun || 'Zona a elegir') : 'Campus Siglo 21'}
-                </div>
+                <div style={{ fontWeight: 600 }}>{esIda ? (form.zona_comun || 'Punto a elegir') : 'Campus Siglo 21'}</div>
               </div>
             </div>
             <div style={{ marginLeft: 10, padding: '4px 0', color: 'var(--border2)', fontSize: '1rem' }}>│</div>
@@ -139,29 +126,35 @@ export default function CreateTrip() {
               <span>{esIda ? '🎓' : '📍'}</span>
               <div>
                 <div style={{ color: 'var(--text2)', fontSize: '0.75rem' }}>DESTINO</div>
-                <div style={{ fontWeight: 600 }}>
-                  {!esIda ? (form.zona_comun || 'Zona a elegir') : 'Campus Siglo 21'}
-                </div>
+                <div style={{ fontWeight: 600 }}>{!esIda ? (form.zona_comun || 'Punto a elegir') : 'Campus Siglo 21'}</div>
               </div>
             </div>
           </div>
 
+          {/* 👇 PRIMER DESPLEGABLE: Elegir Barrio */}
           <div className="input-group">
-            <label className="label">
-              {esIda ? 'Punto de encuentro' : 'Destino (zona)'}
-            </label>
-            <select className="input" name="zona_comun" value={form.zona_comun} onChange={handleChange} required>
-              <option value="">Seleccioná una zona</option>
-              {ZONAS.map(z => <option key={z} value={z}>{z}</option>)}
+            <label className="label">{esIda ? 'Barrio de encuentro' : 'Barrio de destino'}</label>
+            <select className="input" value={barrioEncuentro} onChange={handleBarrioChange} required>
+              <option value="">Seleccioná un barrio</option>
+              {Object.keys(ZONAS_POR_BARRIO).map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>
 
+          {/* 👇 SEGUNDO DESPLEGABLE: Elegir Punto Exacto (Aparece solo cuando eligen barrio) */}
+          {barrioEncuentro && (
+            <div className="input-group fade-up">
+              <label className="label">{esIda ? 'Punto exacto' : 'Punto exacto de destino'}</label>
+              <select className="input" name="zona_comun" value={form.zona_comun} onChange={handleChange} required>
+                <option value="">Seleccioná el lugar</option>
+                {ZONAS_POR_BARRIO[barrioEncuentro].map(z => <option key={z} value={z}>{z}</option>)}
+              </select>
+            </div>
+          )}
+
           <div className="input-group">
-            <label className="label">Barrio / dirección de referencia</label>
-            <input className="input" type="text" name="barrio" placeholder={esIda ? 'Ej: Frente al Bar Del Bono' : 'Ej: Barrio Jardín'} value={form.barrio} onChange={handleChange} required />
-            <span style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>
-              Indicá algo que ayude a tus pasajeros a encontrarte.
-            </span>
+            <label className="label">Calle / Dirección de referencia</label>
+            <input className="input" type="text" name="barrio" placeholder={esIda ? 'Ej: Frente al kiosco azul' : 'Ej: Sobre Rondeau 200'} value={form.barrio} onChange={handleChange} required />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>Indicá algo que ayude a tus pasajeros a encontrarte rápido.</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -176,56 +169,42 @@ export default function CreateTrip() {
           </div>
 
           <div className="segment" style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '8px', display: 'block' }}>
-              ¿Vas con algún amigo/a?
-            </label>
-            <select 
-              className="input" 
-              value={acompanantes} 
-              onChange={e => setAcompanantes(e.target.value)}
-            >
-              <option value="0">Voy solo (3 lugares libres)</option>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '8px', display: 'block' }}>¿Vas con algún amigo/a?</label>
+            <select className="input" value={acompanantes} onChange={e => setAcompanantes(e.target.value)}>
+              <option value="0">Voy solo / Ya pedí yo el auto (3 lugares libres)</option>
               <option value="1">Voy con 1 amigo/a (2 lugares libres)</option>
               <option value="2">Voy con 2 amigos/as (1 lugar libre)</option>
             </select>
           </div>
 
-          {/* 👇 SELECTOR DINÁMICO: Condición de salida */}
           {acompanantes !== '2' ? (
             <div className="segment" style={{ marginBottom: 12, flexDirection: 'column' }}>
               <div>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '4px', display: 'block' }}>
-                  Condición para salir:
-                </label>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text3)', display: 'block', marginBottom: '8px', lineHeight: 1.4 }}>
-                  Este es el <strong>mínimo</strong> necesario para confirmar el viaje. Podés salir aunque queden lugares, pero si se suma más gente al grupo, ¡mejor!
-                </span>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '4px', display: 'block' }}>Condición para salir:</label>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text3)', display: 'block', marginBottom: '8px', lineHeight: 1.4 }}>Este es el <strong>mínimo</strong> necesario para confirmar el viaje. Podés salir aunque queden lugares, pero si se suma más gente al grupo, ¡mejor!</span>
               </div>
-              
               {acompanantes === '0' && (
                 <select className="input" value={pasajerosMinimos} onChange={e => setPasajerosMinimos(e.target.value)}>
-                  <option value="1">🚕 Salgo si se une 1 persona más</option>
-                  <option value="2">🚗 Salgo si se une 2 personas más</option>
+                  <option value="1">🚕 Salgo con 1 persona más</option>
+                  <option value="2">🚗 Salgo con 2 personas más</option>
                   <option value="3">🚐 Salgo solo si se llena el auto</option>
                 </select>
               )}
-
               {acompanantes === '1' && (
                 <select className="input" value={pasajerosMinimos} onChange={e => setPasajerosMinimos(e.target.value)}>
-                  <option value="1">🚕 Salgo si se une 1 persona más</option>
+                  <option value="1">🚕 Salgo con 1 persona más</option>
                   <option value="2">🚐 Salgo solo si se llena el auto</option>
                 </select>
               )}
             </div>
           ) : (
             <div className="alert alert-info" style={{ fontSize: '0.82rem', marginBottom: 12 }}>
-              Como queda solo 1 lugar libre, el viaje se confirmará automáticamente al sumarse el último pasajero.
+              <strong>Condición implícita:</strong> Como queda solo 1 lugar libre, el viaje se confirmará automáticamente al sumarse el último pasajero.
             </div>
           )}
 
           <div className="alert alert-info" style={{ fontSize: '0.82rem' }}>
-            <strong>¿Cómo funciona?</strong><br />
-            Publicás el viaje, tus compañeros se unen y automáticamente se habilitan los datos de WhatsApp de todos para que puedan coordinar el Uber/Cabify y compartir gastos.
+            <strong>¿Cómo funciona?</strong><br />Publicás el viaje, tus compañeros se unen y automáticamente se habilitan los datos de WhatsApp de todos para coordinar el Uber/Cabify.
           </div>
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 4 }}>
