@@ -12,7 +12,11 @@ const ZONAS = [
   'Plaza Alberdi',
   'Mujer Urbana / Parque de las Naciones',
   'Paseo del Jockey',
-  'Plaza Rivadavia'
+  'Plaza Rivadavia',
+  'Farmacity de la Chacabuco',
+  'Chacabuco e Illia',
+  'Buenos Aires y Estrada',
+  'Rondeau y Paraná'
 ];
 
 export default function CreateTrip() {

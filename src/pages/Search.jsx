@@ -3,18 +3,38 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import TripCard from '../components/TripCard';
 
-const ZONAS = [
-  'Patio Olmos',
-  'Buen Pastor',
-  'Plaza España',
-  'Plaza San Martín',
-  'Terminal T2',
-  'Plaza Colón',
-  'Plaza Alberdi',
-  'Mujer Urbana / Parque de las Naciones',
-  'Paseo del Jockey',
-  'Plaza Rivadavia'
-];
+// Nueva estructura agrupada por barrios
+const ZONAS_POR_BARRIO = {
+  'Nueva Córdoba': [
+    'Patio Olmos',
+    'Buen Pastor',
+    'Plaza España',
+    'Farmacity de la Chacabuco',
+    'Chacabuco e Illia',
+    'Buenos Aires y Estrada',
+    'Rondeau y Paraná'
+  ],
+  'Centro': [
+    'Patio Olmos',
+    'Plaza San Martín',
+    'Terminal T2'
+  ],
+  'Alberdi': [
+    'Plaza Colón'
+  ],
+  'General Paz': [
+    'Plaza Alberdi'
+  ],
+  'Alta Córdoba': [
+    'Plaza Rivadavia'
+  ],
+  'Zona Sur (Barrio Jardín)': [
+    'Paseo del Jockey'
+  ],
+  'Zona Norte (Cerro / Urca)': [
+    'Mujer Urbana / Parque de las Naciones'
+  ]
+};
 
 export default function Search() {
   const [searchParams] = useSearchParams();
@@ -23,9 +43,8 @@ export default function Search() {
   const [zona,   setZona]   = useState('');
   const [fecha,  setFecha]  = useState('');
   const [trips,  setTrips]  = useState([]);
-  const [loading, setLoading] = useState(true); // Arranca en true para buscar ni bien entramos
+  const [loading, setLoading] = useState(true);
 
-  // Este useEffect se ejecuta al cargar la página Y CADA VEZ que cambian los filtros
   useEffect(() => {
     let isMounted = true;
 
@@ -53,9 +72,8 @@ export default function Search() {
 
     fetchTrips();
 
-    // Cleanup function por si el usuario cambia de página rápido
     return () => { isMounted = false; };
-  }, [tipo, zona, fecha]); // 👈 La magia está acá: escucha los cambios de estas 3 variables
+  }, [tipo, zona, fecha]);
 
   function handleTipo(t) {
     setTipo(prev => prev === t ? '' : t);
@@ -91,7 +109,7 @@ export default function Search() {
             >🏠 A casa</button>
           </div>
 
-          {/* Zona */}
+          {/* Zona (Filtro agrupado) */}
           <select
             className="input"
             value={zona}
@@ -99,8 +117,16 @@ export default function Search() {
             style={{ marginBottom: 10, fontSize: '0.9rem' }}
           >
             <option value="">📍 Todas las zonas</option>
-            {ZONAS.map(z => (
-              <option key={z} value={z}>{z}</option>
+            
+            {/* Iteramos sobre el objeto para crear los grupos */}
+            {Object.entries(ZONAS_POR_BARRIO).map(([barrio, lugares]) => (
+              <optgroup key={barrio} label={`📍 ${barrio}`}>
+                {lugares.map(lugar => (
+                  <option key={`${barrio}-${lugar}`} value={lugar}>
+                    {lugar}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
 

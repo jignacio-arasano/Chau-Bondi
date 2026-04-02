@@ -10,7 +10,11 @@ const ZONAS_EMOJI = {
   'Plaza Alberdi': '🌿',
   'Mujer Urbana / Parque de las Naciones': '🏔️',
   'Paseo del Jockey': '🏇',
-  'Plaza Rivadavia': '⛪'
+  'Plaza Rivadavia': '⛪',
+  'Farmacity de la Chacabuco': '💊',
+  'Chacabuco e Illia': '📍',
+  'Buenos Aires y Estrada': '📍',
+  'Rondeau y Paraná': '📍'
 };
 
 function Stars({ rating }) {
