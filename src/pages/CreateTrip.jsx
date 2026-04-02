@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 
@@ -26,10 +26,23 @@ export default function CreateTrip() {
   });
   
   const [pasajerosMinimos, setPasajerosMinimos] = useState('1'); 
-  const [acompanantes, setAcompanantes] = useState('0'); // 👇 ESTADO NUEVO
+  const [acompanantes, setAcompanantes] = useState('0');
   
   const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Efecto dinámico para ajustar la condición si cambian los acompañantes
+  useEffect(() => {
+    const ac = parseInt(acompanantes, 10);
+    const pm = parseInt(pasajerosMinimos, 10);
+    const maxPermitido = 3 - ac;
+    
+    // Si el usuario tenía puesto "pedir 3 personas" pero ahora dijo que va con 1 amigo, 
+    // lo bajamos automáticamente a 2 para que no se rompa la matemática.
+    if (pm > maxPermitido) {
+      setPasajerosMinimos(maxPermitido.toString());
+    }
+  }, [acompanantes, pasajerosMinimos]);
 
   function handleChange(e) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -42,6 +55,9 @@ export default function CreateTrip() {
     if (!form.fecha || !form.hora) { setError('Ingresá fecha y hora.'); return; }
 
     const fecha_hora = new Date(`${form.fecha}T${form.hora}:00`).toISOString();
+    
+    // Si quedan 0 lugares libres (acompanantes = 2), por defecto se pide 1 pasajero más para llenarlo
+    const minReq = acompanantes === '2' ? 1 : parseInt(pasajerosMinimos, 10);
 
     setLoading(true);
     setError('');
@@ -51,8 +67,8 @@ export default function CreateTrip() {
         zona_comun: form.zona_comun,
         barrio:     form.barrio,
         fecha_hora,
-        pasajeros_minimos: parseInt(pasajerosMinimos, 10),
-        acompanantes: parseInt(acompanantes, 10) // 👇 LO MANDAMOS A LA DB
+        pasajeros_minimos: minReq,
+        acompanantes: parseInt(acompanantes, 10)
       });
       navigate(`/trip/${viaje.id}`, { replace: true });
     } catch (err) {
@@ -155,7 +171,6 @@ export default function CreateTrip() {
             </div>
           </div>
 
-          {/* 👇 NUEVO SELECTOR: Acompañantes */}
           <div className="segment" style={{ marginBottom: 12 }}>
             <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '8px', display: 'block' }}>
               ¿Vas con algún amigo/a?
@@ -165,22 +180,44 @@ export default function CreateTrip() {
               value={acompanantes} 
               onChange={e => setAcompanantes(e.target.value)}
             >
-              <option value="0">Voy solo / Ya pedí yo el auto (3 lugares libres)</option>
+              <option value="0">Voy solo (3 lugares libres)</option>
               <option value="1">Voy con 1 amigo/a (2 lugares libres)</option>
               <option value="2">Voy con 2 amigos/as (1 lugar libre)</option>
             </select>
           </div>
 
-          <div className="segment" style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '8px', display: 'block' }}>
-              Condición para salir (además de vos y tus amigos):
-            </label>
-            <select className="input" value={pasajerosMinimos} onChange={e => setPasajerosMinimos(e.target.value)}>
-              <option value="1">🚕 Salgo con 1 persona más de la app</option>
-              <option value="2">🚗 Salgo con 2 personas más de la app</option>
-              <option value="3">🚐 Salgo solo si se llena todo el auto</option>
-            </select>
-          </div>
+          {/* 👇 SELECTOR DINÁMICO: Condición de salida */}
+          {acompanantes !== '2' ? (
+            <div className="segment" style={{ marginBottom: 12, flexDirection: 'column' }}>
+              <div>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '4px', display: 'block' }}>
+                  Condición para salir:
+                </label>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text3)', display: 'block', marginBottom: '8px', lineHeight: 1.4 }}>
+                  Este es el <strong>mínimo</strong> necesario para confirmar el viaje. Podés salir aunque queden lugares, pero si se suma más gente al grupo, ¡mejor!
+                </span>
+              </div>
+              
+              {acompanantes === '0' && (
+                <select className="input" value={pasajerosMinimos} onChange={e => setPasajerosMinimos(e.target.value)}>
+                  <option value="1">🚕 Salgo si se une 1 persona más</option>
+                  <option value="2">🚗 Salgo si se une 2 personas más</option>
+                  <option value="3">🚐 Salgo solo si se llena el auto</option>
+                </select>
+              )}
+
+              {acompanantes === '1' && (
+                <select className="input" value={pasajerosMinimos} onChange={e => setPasajerosMinimos(e.target.value)}>
+                  <option value="1">🚕 Salgo si se une 1 persona más</option>
+                  <option value="2">🚐 Salgo solo si se llena el auto</option>
+                </select>
+              )}
+            </div>
+          ) : (
+            <div className="alert alert-info" style={{ fontSize: '0.82rem', marginBottom: 12 }}>
+              Como queda solo 1 lugar libre, el viaje se confirmará automáticamente al sumarse el último pasajero.
+            </div>
+          )}
 
           <div className="alert alert-info" style={{ fontSize: '0.82rem' }}>
             <strong>¿Cómo funciona?</strong><br />

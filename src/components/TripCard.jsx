@@ -19,28 +19,47 @@ function Stars({ rating }) {
 }
 
 export default function TripCard({ trip }) {
-  const { id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, profiles, pasajeros_minimos } = trip;
+  const { id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, profiles, pasajeros_minimos, acompanantes } = trip;
   
   const fecha = new Date(fecha_hora);
-  
-  // Extraemos solo el número de día (ej: "26") y el mes abreviado (ej: "mar")
   const diaNum = fecha.getDate();
   const mesAbr = fecha.toLocaleDateString('es-AR', { month: 'short', timeZone: 'America/Argentina/Cordoba' });
-  
-  const horaStr = fecha.toLocaleTimeString('es-AR', { 
-    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' 
-  });
+  const horaStr = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
   
   const esIda = tipo === 'IDA';
-  
-  // Emoji según zona (fallback al genérico si no lo encuentra)
   const zonaLimpia = zona_comun.split('/')[0].trim();
   const icon = ZONAS_EMOJI[zonaLimpia] || (esIda ? '📍' : '🎓');
 
-  // Lógica del mínimo de pasajeros
+  // Lógica de validación
   const totalOcupados = 3 - cupos_disponibles;
   const minRequerido = pasajeros_minimos || 1;
   const viajeConfirmado = totalOcupados >= minRequerido;
+  
+  // Total de personas que se necesitan para salir (1 conductor + amigos + mínimo exigido)
+  const totalNecesarios = 1 + (acompanantes || 0) + minRequerido;
+
+  // Renderizado dinámico de Cupos (FOMO UX)
+  let cuposUI;
+  if (cupos_disponibles >= 3) {
+    cuposUI = (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+        <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>{cupos_disponibles}</span>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text2)' }}>libres</span>
+      </div>
+    );
+  } else if (cupos_disponibles === 2) {
+    cuposUI = (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--orange)' }}>⏳ Últimos 2 lugares</span>
+      </div>
+    );
+  } else if (cupos_disponibles === 1) {
+    cuposUI = (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--red)', textTransform: 'uppercase' }}>🔥 ¡Último lugar!</span>
+      </div>
+    );
+  }
 
   return (
     <Link to={`/trip/${id}`} className="card trip-card" style={{ display: 'flex', textDecoration: 'none', color: 'inherit' }}>
@@ -94,14 +113,11 @@ export default function TripCard({ trip }) {
 
           {/* Cupos y Condición */}
           <div style={{ textAlign: 'right' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-              <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)' }}>
-                {cupos_disponibles}
-              </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text2)' }}>libres</span>
-            </div>
             
-            {/* 👇 LA NUEVA ETIQUETA 👇 */}
+            {/* Dibujamos el FOMO UI dinámico */}
+            {cuposUI}
+            
+            {/* Etiqueta de Confirmación / Condición */}
             <div style={{ marginTop: '2px' }}>
               {viajeConfirmado ? (
                 <span style={{ fontSize: '0.65rem', color: 'var(--green)', fontWeight: 600 }}>
@@ -109,7 +125,7 @@ export default function TripCard({ trip }) {
                 </span>
               ) : (
                 <span style={{ fontSize: '0.65rem', color: '#d97706', fontWeight: 600 }}>
-                  Sale con {minRequerido + 1}
+                  {totalNecesarios >= 4 ? 'Sale si se llena el auto' : `Sale con ${totalNecesarios}`}
                 </span>
               )}
             </div>
