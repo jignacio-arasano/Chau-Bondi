@@ -2,9 +2,7 @@ const supabase = require('./_lib/db');
 const { withAuth } = require('./_lib/middleware');
 
 module.exports = withAuth(async (req, res) => {
-  // Normalizar URL: quitar query string y slash final
   const fullUrl = req.url.split('?')[0].replace(/\/$/, '');
-  // Extraer la parte después de /api/trips
   const path = fullUrl.replace(/^\/api\/trips/, '') || '/';
   const method = req.method;
 
@@ -12,7 +10,7 @@ module.exports = withAuth(async (req, res) => {
   if (path === '/my/created' && method === 'GET') {
     try {
       const { data, error } = await supabase.from('viajes')
-        .select('id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos')
+        .select('id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos, acompanantes')
         .eq('id_creador', req.user.id)
         .order('fecha_hora', { ascending: false });
       if (error) throw error;
@@ -27,7 +25,7 @@ module.exports = withAuth(async (req, res) => {
     try {
       const { data, error } = await supabase.from('participantes')
         .select(`id, estado_pago, created_at,
-          viajes:id_viaje ( id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, pasajeros_minimos,
+          viajes:id_viaje ( id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, pasajeros_minimos, acompanantes,
             profiles:id_creador ( nombre, apellido, rating_promedio ) )`)
         .eq('id_usuario', req.user.id)
         .order('created_at', { ascending: false });
@@ -46,7 +44,7 @@ module.exports = withAuth(async (req, res) => {
 
       let query = supabase
         .from('viajes')
-        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos,
+        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos, acompanantes,
           profiles:id_creador ( id, nombre, apellido, rating_promedio )`)
         .eq('activo', true)
         .gt('cupos_disponibles', 0)
@@ -73,8 +71,7 @@ module.exports = withAuth(async (req, res) => {
   // ── POST /api/trips — crear viaje ─────────────────────────────────────────
   if (path === '/' && method === 'POST') {
     try {
-      // 👇 RECIBIMOS EL NUEVO PARÁMETRO
-      const { tipo, zona_comun, barrio, fecha_hora, pasajeros_minimos } = req.body || {};
+      const { tipo, zona_comun, barrio, fecha_hora, pasajeros_minimos, acompanantes } = req.body || {};
 
       if (!tipo || !zona_comun || !barrio || !fecha_hora)
         return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
@@ -85,14 +82,15 @@ module.exports = withAuth(async (req, res) => {
       if (isNaN(fechaViaje.getTime()) || fechaViaje <= new Date())
         return res.status(400).json({ error: 'La fecha debe ser en el futuro.' });
         
-      // Parseamos el mínimo, si no mandan nada, por defecto es 1
       const minRequerido = pasajeros_minimos ? parseInt(pasajeros_minimos, 10) : 1;
+      const acomps = acompanantes ? parseInt(acompanantes, 10) : 0;
+      
+      // 👇 ACÁ ESTÁ LA MAGIA MATEMÁTICA
+      const cupos_iniciales = 3 - acomps;
 
-      // Función que resta 3 horas para calcular el "Día de Argentina" (GMT-3) correctamente
       const getDiaArg = (dateObj) => new Date(dateObj.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const fechaDiaArg = getDiaArg(fechaViaje);
 
-      // Duplicado del creador
       const { data: misViajes } = await supabase.from('viajes')
         .select('id, fecha_hora')
         .eq('id_creador', req.user.id).eq('tipo', tipo).eq('activo', true)
@@ -101,7 +99,6 @@ module.exports = withAuth(async (req, res) => {
       if ((misViajes || []).some(v => getDiaArg(new Date(v.fecha_hora)) === fechaDiaArg))
         return res.status(409).json({ error: 'Ya tenés un viaje del mismo tipo publicado para ese día.' });
 
-      // Duplicado global (misma zona + menos de 15 min)
       const { data: viajesZona } = await supabase.from('viajes')
         .select('id, fecha_hora')
         .eq('tipo', tipo).eq('zona_comun', zona_comun).eq('activo', true)
@@ -118,7 +115,6 @@ module.exports = withAuth(async (req, res) => {
           error: 'Ya existe un viaje desde/hacia esa zona en ese horario (menos de 15 min). Buscalo en la lista y unite.'
         });
 
-      // 👇 INSERTAMOS CON EL PASAJEROS_MINIMOS
       const { data: viaje, error } = await supabase.from('viajes')
         .insert({ 
           id_creador: req.user.id, 
@@ -126,10 +122,11 @@ module.exports = withAuth(async (req, res) => {
           zona_comun, 
           barrio: barrio.trim(),
           fecha_hora: fechaViaje.toISOString(), 
-          cupos_disponibles: 3,
-          pasajeros_minimos: minRequerido 
+          cupos_disponibles: cupos_iniciales, // Guardamos los lugares reales
+          pasajeros_minimos: minRequerido,
+          acompanantes: acomps
         })
-        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos,
+        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos, acompanantes,
           profiles:id_creador ( id, nombre, apellido, rating_promedio )`)
         .single();
 
@@ -141,7 +138,6 @@ module.exports = withAuth(async (req, res) => {
     }
   }
 
-  // Extraer ID de rutas tipo /api/trips/:id, /api/trips/:id/join, /api/trips/:id/leave
   const idMatch = path.match(/^\/([a-f0-9-]{36})(\/join|\/leave)?$/);
   if (!idMatch) return res.status(404).json({ error: 'Ruta no encontrada.' });
 
@@ -199,7 +195,7 @@ module.exports = withAuth(async (req, res) => {
   if (!action && method === 'GET') {
     try {
       const { data: viaje, error } = await supabase.from('viajes')
-        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos,
+        .select(`id, tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo, created_at, pasajeros_minimos, acompanantes,
           profiles:id_creador ( id, nombre, apellido, rating_promedio )`)
         .eq('id', id).single();
 

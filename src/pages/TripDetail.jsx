@@ -9,6 +9,20 @@ function Stars({ rating }) {
 }
 
 function MemberRow({ member, puedeVerWA }) {
+  // 👇 Si es una tarjeta fantasma de un amigo, la renderizamos distinta
+  if (member.es_amigo) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+        <div className="avatar" style={{ background: 'var(--bg3)', color: 'var(--text3)' }}>👤</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text2)' }}>
+            {member.nombre} <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>{member.apellido}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const initials = `${member.nombre[0]}${member.apellido[0]}`;
   const waLink   = member.whatsapp
     ? `https://wa.me/54${member.whatsapp}?text=${encodeURIComponent('¡Hola! Te escribo por el viaje de ChauBondi 🚌')}`
@@ -72,11 +86,8 @@ export default function TripDetail() {
       await api.trips.join(id); 
       const viajeActualizado = await api.trips.get(id); 
       setViaje(viajeActualizado); 
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setJoining(false); 
-    }
+    } catch (err) { setError(err.message); } 
+    finally { setJoining(false); }
   }
 
   async function handleLeave() {
@@ -86,9 +97,7 @@ export default function TripDetail() {
       await api.trips.leave(id);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message);
-      setLeaving(false);
-      setConfirm(false);
+      setError(err.message); setLeaving(false); setConfirm(false);
     }
   }
 
@@ -99,9 +108,7 @@ export default function TripDetail() {
       await api.trips.delete(id);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message);
-      setDeleting(false);
-      setConfirm(false);
+      setError(err.message); setDeleting(false); setConfirm(false);
     }
   }
   
@@ -113,10 +120,7 @@ export default function TripDetail() {
     const texto = `¡Sumate a mi viaje en ChauBondi! 🚌\n📍 De: ${origen}\n🏁 A: ${destino}\n🕒 Horario: ${horaStr} hs\n\n👉 Reservá tu lugar acá: ${window.location.href}`;
 
     if (navigator.share) {
-      navigator.share({
-        title: 'Viaje en ChauBondi',
-        text: texto
-      }).catch((err) => console.log('Error al compartir', err));
+      navigator.share({ title: 'Viaje en ChauBondi', text: texto }).catch((err) => console.log('Error al compartir', err));
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
     }
@@ -141,47 +145,40 @@ export default function TripDetail() {
   );
 
   const { tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo,
-          profiles, participantes, creador_detalle, pasajeros_minimos,
+          profiles, participantes, creador_detalle, pasajeros_minimos, acompanantes,
           puede_unirse, es_creador, ya_es_pasajero } = viaje;
 
   const fecha = new Date(fecha_hora);
-  const fechaStr = fecha.toLocaleDateString('es-AR', {
-    weekday: 'long', day: 'numeric', month: 'long',
-    timeZone: 'America/Argentina/Cordoba'
-  });
-  const horaStr = fecha.toLocaleTimeString('es-AR', {
-    hour: '2-digit', minute: '2-digit',
-    hour12: false, timeZone: 'America/Argentina/Cordoba'
-  });
+  const fechaStr = fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Argentina/Cordoba' });
+  const horaStr = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
   const yaFue = fecha < new Date();
 
+  // La matemática sigue intacta y perfecta
   const totalOcupados = 3 - cupos_disponibles;
-
-  // Lógica de pasajeros mínimos
   const pasajerosActuales = totalOcupados; 
   const minRequerido = pasajeros_minimos || 1;
   const viajeConfirmado = pasajerosActuales >= minRequerido;
   const faltan = minRequerido - pasajerosActuales;
 
-  // Construir lista completa de miembros
+  // 👇 Generamos las tarjetas falsas para los amigos
+  const amigosFantasma = Array.from({ length: acompanantes || 0 }).map((_, i) => ({
+    es_amigo: true,
+    nombre: 'Amigo/a',
+    apellido: `de ${creador_detalle?.nombre || ''}`,
+  }));
+
+  // Las agregamos a la lista de miembros, justo después del creador
   const miembros = [
     creador_detalle,
+    ...amigosFantasma,
     ...participantes
   ].filter(Boolean);
 
   return (
     <div className="page">
-      {/* Header */}
-      <div style={{
-        background: 'var(--bg2)',
-        borderBottom: '1px solid var(--border)',
-        padding: '48px 24px 20px'
-      }}>
+      <div style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)', padding: '48px 24px 20px' }}>
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
-          <button onClick={() => navigate(-1)} style={{
-            background: 'none', border: 'none', color: 'var(--text2)',
-            fontSize: '1.4rem', cursor: 'pointer', padding: 0, marginBottom: 16
-          }}>←</button>
+          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'var(--text2)', fontSize: '1.4rem', cursor: 'pointer', padding: 0, marginBottom: 16 }}>←</button>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
             <span className={`badge ${tipo === 'IDA' ? 'badge-green' : 'badge-orange'}`} style={{ fontSize: '0.8rem' }}>
@@ -191,32 +188,22 @@ export default function TripDetail() {
             {yaFue  && activo && <span className="badge badge-gray">FINALIZADO</span>}
           </div>
 
-          {/* Hora grande */}
-          <div style={{ fontFamily: 'var(--font-head)', fontSize: '3.5rem', color: 'var(--green)', lineHeight: 1 }}>
-            {horaStr}
-          </div>
-          <div style={{ color: 'var(--text2)', marginTop: 4, textTransform: 'capitalize' }}>
-            {fechaStr}
-          </div>
+          <div style={{ fontFamily: 'var(--font-head)', fontSize: '3.5rem', color: 'var(--green)', lineHeight: 1 }}>{horaStr}</div>
+          <div style={{ color: 'var(--text2)', marginTop: 4, textTransform: 'capitalize' }}>{fechaStr}</div>
         </div>
       </div>
 
       <div className="container" style={{ paddingTop: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
         {error && <div className="alert alert-error">{error}</div>}
 
-        {/* Ruta */}
         <div className="card">
-          <h3 style={{ fontSize: '0.75rem', color: 'var(--text2)', letterSpacing: '0.08em', marginBottom: 14 }}>
-            RUTA
-          </h3>
+          <h3 style={{ fontSize: '0.75rem', color: 'var(--text2)', letterSpacing: '0.08em', marginBottom: 14 }}>RUTA</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
               <span style={{ fontSize: '1.2rem', marginTop: 2 }}>{tipo === 'IDA' ? '📍' : '🎓'}</span>
               <div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text3)', fontWeight: 600 }}>ORIGEN</div>
-                <div style={{ fontWeight: 600 }}>
-                  {tipo === 'IDA' ? zona_comun : 'Campus Siglo 21'}
-                </div>
+                <div style={{ fontWeight: 600 }}>{tipo === 'IDA' ? zona_comun : 'Campus Siglo 21'}</div>
                 {tipo === 'IDA' && <div style={{ fontSize: '0.85rem', color: 'var(--text2)' }}>{barrio}</div>}
               </div>
             </div>
@@ -225,54 +212,37 @@ export default function TripDetail() {
               <span style={{ fontSize: '1.2rem', marginTop: 2 }}>{tipo === 'IDA' ? '🎓' : '📍'}</span>
               <div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text3)', fontWeight: 600 }}>DESTINO</div>
-                <div style={{ fontWeight: 600 }}>
-                  {tipo === 'IDA' ? 'Campus Siglo 21' : zona_comun}
-                </div>
+                <div style={{ fontWeight: 600 }}>{tipo === 'IDA' ? 'Campus Siglo 21' : zona_comun}</div>
                 {tipo === 'VUELTA' && <div style={{ fontSize: '0.85rem', color: 'var(--text2)' }}>{barrio}</div>}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Cupos */}
         <div className="card">
           <h3 style={{ fontSize: '0.75rem', color: 'var(--text2)', letterSpacing: '0.08em', marginBottom: 12 }}>
             GRUPO ({totalOcupados + 1}/4)
           </h3>
 
-          {/* Slots gráfico */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
             {[0,1,2,3].map(i => (
-              <div key={i} style={{
-                flex: 1, height: 6, borderRadius: 3,
-                background: i <= totalOcupados ? 'var(--green)' : 'var(--border2)'
-              }} />
+              <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i <= totalOcupados ? 'var(--green)' : 'var(--border2)' }} />
             ))}
           </div>
 
-          {/* Lista de miembros */}
-          {miembros.map((m, i) => (
-            <MemberRow key={i} member={m} />
-          ))}
+          {miembros.map((m, i) => <MemberRow key={i} member={m} />)}
 
-          {/* Slots vacíos */}
           {cupos_disponibles > 0 && Array.from({ length: cupos_disponibles }).map((_, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '12px 0', borderBottom: '1px solid var(--border)',
-              opacity: 0.4
-            }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)', opacity: 0.4 }}>
               <div className="avatar" style={{ background: 'var(--bg3)', color: 'var(--text3)' }}>?</div>
               <span style={{ fontSize: '0.9rem', color: 'var(--text3)' }}>Lugar disponible</span>
             </div>
           ))}
         </div>
 
-        {/* Acciones */}
         {activo && !yaFue && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             
-            {/* Cartel de Condición de Salida */}
             <div style={{ marginBottom: '4px' }}>
               {viajeConfirmado ? (
                 <div className="alert alert-success" style={{ fontSize: '0.82rem', textAlign: 'center' }}>
@@ -285,83 +255,46 @@ export default function TripDetail() {
               )}
             </div>
 
-            {/* BOTÓN DE COMPARTIR */}
             {(es_creador || ya_es_pasajero) && cupos_disponibles > 0 && (
-              <button 
-                className="btn btn-whatsapp btn-full" 
-                onClick={handleShare}
-                style={{ marginBottom: '8px' }}
-              >
+              <button className="btn btn-whatsapp btn-full" onClick={handleShare} style={{ marginBottom: '8px' }}>
                 📲 Invitar compañeros por WhatsApp
               </button>
             )}
 
             {puede_unirse && (
-              <>
-                <button
-                  className="btn btn-primary btn-full"
-                  onClick={handleJoin}
-                  disabled={joining}
-                >
-                  {joining
-                    ? <><span className="spinner" style={{ width: 18, height: 18 }} /> Uniéndote al grupo…</>
-                    : '🤝 Unirme al viaje'}
-                </button>
-              </>
+              <button className="btn btn-primary btn-full" onClick={handleJoin} disabled={joining}>
+                {joining ? <><span className="spinner" style={{ width: 18, height: 18 }} /> Uniéndote al grupo…</> : '🤝 Unirme al viaje'}
+              </button>
             )}
 
             {ya_es_pasajero && (
-              <>
-                {confirm ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div className="alert alert-error" style={{ fontSize: '0.82rem' }}>
-                      ⚠️ ¿Seguro que querés salir? Dejarás a tu grupo con un lugar vacío.
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                      <button className="btn btn-secondary" onClick={() => setConfirm(false)}>Cancelar</button>
-                      <button className="btn btn-danger" onClick={handleLeave} disabled={leaving}>
-                        {leaving ? 'Saliendo…' : 'Sí, salir'}
-                      </button>
-                    </div>
+              confirm ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="alert alert-error" style={{ fontSize: '0.82rem' }}>⚠️ ¿Seguro que querés salir? Dejarás a tu grupo con un lugar vacío.</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <button className="btn btn-secondary" onClick={() => setConfirm(false)}>Cancelar</button>
+                    <button className="btn btn-danger" onClick={handleLeave} disabled={leaving}>{leaving ? 'Saliendo…' : 'Sí, salir'}</button>
                   </div>
-                ) : (
-                  <button className="btn btn-danger" onClick={() => setConfirm(true)}>
-                    Salir del viaje
-                  </button>
-                )}
-              </>
+                </div>
+              ) : <button className="btn btn-danger" onClick={() => setConfirm(true)}>Salir del viaje</button>
             )}
 
             {es_creador && (
-              <>
-                {confirm ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div className="alert alert-error" style={{ fontSize: '0.82rem' }}>
-                      ⚠️ ¿Cancelar el viaje? Los pasajeros que ya se unieron quedarán sin grupo.
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                      <button className="btn btn-secondary" onClick={() => setConfirm(false)}>No, mantenerlo</button>
-                      <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
-                        {deleting ? 'Cancelando…' : 'Sí, cancelar'}
-                      </button>
-                    </div>
+              confirm ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="alert alert-error" style={{ fontSize: '0.82rem' }}>⚠️ ¿Cancelar el viaje? Los pasajeros que ya se unieron quedarán sin grupo.</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <button className="btn btn-secondary" onClick={() => setConfirm(false)}>No, mantenerlo</button>
+                    <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>{deleting ? 'Cancelando…' : 'Sí, cancelar'}</button>
                   </div>
-                ) : (
-                  <button className="btn btn-danger" onClick={() => setConfirm(true)}>
-                    Cancelar viaje
-                  </button>
-                )}
-              </>
+                </div>
+              ) : <button className="btn btn-danger" onClick={() => setConfirm(true)}>Cancelar viaje</button>
             )}
           </div>
         )}
 
         {(!activo || yaFue) && (
-          <div className="alert" style={{
-            background: 'var(--bg3)',
-            color: 'var(--text2)',
-            border: '1px solid var(--border)'
-          }}>
+          <div className="alert" style={{ background: 'var(--bg3)', color: 'var(--text2)', border: '1px solid var(--border)' }}>
             {!activo ? '❌ Este viaje fue cancelado.' : '✅ Este viaje ya se realizó.'}
           </div>
         )}

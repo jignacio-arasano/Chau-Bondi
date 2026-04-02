@@ -24,8 +24,9 @@ export default function CreateTrip() {
     fecha: '',
     hora: ''
   });
-  // 👇 NUEVO ESTADO PARA EL MÍNIMO DE PASAJEROS
+  
   const [pasajerosMinimos, setPasajerosMinimos] = useState('1'); 
+  const [acompanantes, setAcompanantes] = useState('0'); // 👇 ESTADO NUEVO
   
   const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,7 +51,8 @@ export default function CreateTrip() {
         zona_comun: form.zona_comun,
         barrio:     form.barrio,
         fecha_hora,
-        pasajeros_minimos: parseInt(pasajerosMinimos, 10) // 👇 LO MANDAMOS AL BACKEND
+        pasajeros_minimos: parseInt(pasajerosMinimos, 10),
+        acompanantes: parseInt(acompanantes, 10) // 👇 LO MANDAMOS A LA DB
       });
       navigate(`/trip/${viaje.id}`, { replace: true });
     } catch (err) {
@@ -65,7 +67,6 @@ export default function CreateTrip() {
 
   return (
     <div className="page">
-      {/* Header */}
       <div style={{
         padding: '48px 24px 20px',
         borderBottom: '1px solid var(--border)',
@@ -87,7 +88,6 @@ export default function CreateTrip() {
         {error && <div className="alert alert-error" style={{ marginBottom: 20 }}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Tipo */}
           <div className="input-group">
             <label className="label">Tipo de viaje</label>
             <div className="segment">
@@ -104,7 +104,6 @@ export default function CreateTrip() {
             </div>
           </div>
 
-          {/* Ruta visual */}
           <div className="card" style={{ padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.9rem' }}>
               <span>{esIda ? '📍' : '🎓'}</span>
@@ -127,100 +126,69 @@ export default function CreateTrip() {
             </div>
           </div>
 
-          {/* Zona común */}
           <div className="input-group">
             <label className="label">
               {esIda ? 'Punto de encuentro' : 'Destino (zona)'}
             </label>
-            <select
-              className="input"
-              name="zona_comun"
-              value={form.zona_comun}
-              onChange={handleChange}
-              required
-            >
+            <select className="input" name="zona_comun" value={form.zona_comun} onChange={handleChange} required>
               <option value="">Seleccioná una zona</option>
               {ZONAS.map(z => <option key={z} value={z}>{z}</option>)}
             </select>
           </div>
 
-          {/* Barrio específico */}
           <div className="input-group">
             <label className="label">Barrio / dirección de referencia</label>
-            <input
-              className="input"
-              type="text"
-              name="barrio"
-              placeholder={esIda ? 'Ej: Frente al Bar Del Bono' : 'Ej: Barrio Jardín'}
-              value={form.barrio}
-              onChange={handleChange}
-              required
-            />
+            <input className="input" type="text" name="barrio" placeholder={esIda ? 'Ej: Frente al Bar Del Bono' : 'Ej: Barrio Jardín'} value={form.barrio} onChange={handleChange} required />
             <span style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>
               Indicá algo que ayude a tus pasajeros a encontrarte.
             </span>
           </div>
 
-          {/* Fecha y hora */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="input-group">
               <label className="label">Fecha</label>
-              <input
-                className="input"
-                type="date"
-                name="fecha"
-                min={today}
-                value={form.fecha}
-                onChange={handleChange}
-                required
-                style={{ colorScheme: 'dark' }}
-              />
+              <input className="input" type="date" name="fecha" min={today} value={form.fecha} onChange={handleChange} required style={{ colorScheme: 'dark' }} />
             </div>
             <div className="input-group">
               <label className="label">Hora</label>
-              <input
-                className="input"
-                type="time"
-                name="hora"
-                value={form.hora}
-                onChange={handleChange}
-                required
-                style={{ colorScheme: 'dark' }}
-              />
+              <input className="input" type="time" name="hora" value={form.hora} onChange={handleChange} required style={{ colorScheme: 'dark' }} />
             </div>
           </div>
 
-          {/* 👇 NUEVO SELECTOR: Condición de salida */}
+          {/* 👇 NUEVO SELECTOR: Acompañantes */}
           <div className="segment" style={{ marginBottom: 12 }}>
             <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '8px', display: 'block' }}>
-              Condición para salir (además de vos):
+              ¿Vas con algún amigo/a?
             </label>
             <select 
               className="input" 
-              value={pasajerosMinimos} 
-              onChange={e => setPasajerosMinimos(e.target.value)}
+              value={acompanantes} 
+              onChange={e => setAcompanantes(e.target.value)}
             >
-              <option value="1">🚕 Salgo con 1 persona más (Auto de 2)</option>
-              <option value="2">🚗 Salgo con 2 personas más (Auto de 3)</option>
-              <option value="3">🚐 Salgo solo si llenamos el auto (Auto de 4)</option>
+              <option value="0">Voy solo / Ya pedí yo el auto (3 lugares libres)</option>
+              <option value="1">Voy con 1 amigo/a (2 lugares libres)</option>
+              <option value="2">Voy con 2 amigos/as (1 lugar libre)</option>
             </select>
           </div>
 
-          {/* Info */}
+          <div className="segment" style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '8px', display: 'block' }}>
+              Condición para salir (además de vos y tus amigos):
+            </label>
+            <select className="input" value={pasajerosMinimos} onChange={e => setPasajerosMinimos(e.target.value)}>
+              <option value="1">🚕 Salgo con 1 persona más de la app</option>
+              <option value="2">🚗 Salgo con 2 personas más de la app</option>
+              <option value="3">🚐 Salgo solo si se llena todo el auto</option>
+            </select>
+          </div>
+
           <div className="alert alert-info" style={{ fontSize: '0.82rem' }}>
             <strong>¿Cómo funciona?</strong><br />
             Publicás el viaje, tus compañeros se unen y automáticamente se habilitan los datos de WhatsApp de todos para que puedan coordinar el Uber/Cabify y compartir gastos.
           </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary btn-full"
-            disabled={loading}
-            style={{ marginTop: 4 }}
-          >
-            {loading
-              ? <><span className="spinner" style={{ width: 18, height: 18 }} /> Publicando…</>
-              : '🚌 Publicar viaje'}
+          <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 4 }}>
+            {loading ? <><span className="spinner" style={{ width: 18, height: 18 }} /> Publicando…</> : '🚌 Publicar viaje'}
           </button>
         </form>
       </div>
