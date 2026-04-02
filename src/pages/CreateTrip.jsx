@@ -22,13 +22,13 @@ export default function CreateTrip() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     tipo: 'IDA',
-    zona_comun: '', // Este es el punto de encuentro final
-    barrio: '',     // Este es el "barrio/referencia" escrito a mano (ej: Frente a Starbucks)
+    zona_comun: '', 
+    barrio: '',     
     fecha: '',
     hora: ''
   });
   
-  const [barrioEncuentro, setBarrioEncuentro] = useState(''); // Estado para el primer desplegable
+  const [barrioEncuentro, setBarrioEncuentro] = useState(''); 
 
   const [pasajerosMinimos, setPasajerosMinimos] = useState('1'); 
   const [acompanantes, setAcompanantes] = useState('0');
@@ -51,7 +51,6 @@ export default function CreateTrip() {
     setError('');
   }
 
-  // Cuando cambian el barrio, borramos el punto de encuentro viejo para que no quede inconsistente
   function handleBarrioChange(e) {
     setBarrioEncuentro(e.target.value);
     setForm(f => ({ ...f, zona_comun: '' }));
@@ -131,7 +130,6 @@ export default function CreateTrip() {
             </div>
           </div>
 
-          {/* 👇 PRIMER DESPLEGABLE: Elegir Barrio */}
           <div className="input-group">
             <label className="label">{esIda ? 'Barrio de encuentro' : 'Barrio de destino'}</label>
             <select className="input" value={barrioEncuentro} onChange={handleBarrioChange} required>
@@ -140,7 +138,6 @@ export default function CreateTrip() {
             </select>
           </div>
 
-          {/* 👇 SEGUNDO DESPLEGABLE: Elegir Punto Exacto (Aparece solo cuando eligen barrio) */}
           {barrioEncuentro && (
             <div className="input-group fade-up">
               <label className="label">{esIda ? 'Punto exacto' : 'Punto exacto de destino'}</label>
@@ -151,9 +148,10 @@ export default function CreateTrip() {
             </div>
           )}
 
+          {/* 👇 MODIFICADO: Ahora dice (Opcional) y ya no tiene 'required' */}
           <div className="input-group">
-            <label className="label">Calle / Dirección de referencia</label>
-            <input className="input" type="text" name="barrio" placeholder={esIda ? 'Ej: Frente al kiosco azul' : 'Ej: Sobre Rondeau 200'} value={form.barrio} onChange={handleChange} required />
+            <label className="label"> Dirección de referencia (Opcional)</label>
+            <input className="input" type="text" name="barrio" placeholder={esIda ? 'Ej: Frente al kiosco azul' : 'Ej: Sobre Rondeau 200'} value={form.barrio} onChange={handleChange} />
             <span style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>Indicá algo que ayude a tus pasajeros a encontrarte rápido.</span>
           </div>
 
@@ -171,7 +169,7 @@ export default function CreateTrip() {
           <div className="segment" style={{ marginBottom: 12 }}>
             <label style={{ fontSize: '0.85rem', color: 'var(--text2)', marginBottom: '8px', display: 'block' }}>¿Vas con algún amigo/a?</label>
             <select className="input" value={acompanantes} onChange={e => setAcompanantes(e.target.value)}>
-              <option value="0">Voy solo / Ya pedí yo el auto (3 lugares libres)</option>
+              <option value="0">Voy solo (3 lugares libres)</option>
               <option value="1">Voy con 1 amigo/a (2 lugares libres)</option>
               <option value="2">Voy con 2 amigos/as (1 lugar libre)</option>
             </select>
@@ -185,21 +183,21 @@ export default function CreateTrip() {
               </div>
               {acompanantes === '0' && (
                 <select className="input" value={pasajerosMinimos} onChange={e => setPasajerosMinimos(e.target.value)}>
-                  <option value="1">🚕 Salgo con 1 persona más</option>
-                  <option value="2">🚗 Salgo con 2 personas más</option>
-                  <option value="3">🚐 Salgo solo si se llena el auto</option>
+                  <option value="1">🚕 Sale con 1 persona más</option>
+                  <option value="2">🚗 Sale con 2 personas más</option>
+                  <option value="3">🚐 Sale solo si se llena el auto</option>
                 </select>
               )}
               {acompanantes === '1' && (
                 <select className="input" value={pasajerosMinimos} onChange={e => setPasajerosMinimos(e.target.value)}>
-                  <option value="1">🚕 Salgo con 1 persona más</option>
-                  <option value="2">🚐 Salgo solo si se llena el auto</option>
+                  <option value="1">🚕 Sale con 1 persona más</option>
+                  <option value="2">🚐 Sale solo si se llena el auto</option>
                 </select>
               )}
             </div>
           ) : (
             <div className="alert alert-info" style={{ fontSize: '0.82rem', marginBottom: 12 }}>
-              <strong>Condición implícita:</strong> Como queda solo 1 lugar libre, el viaje se confirmará automáticamente al sumarse el último pasajero.
+              Como queda solo 1 lugar libre, el viaje se confirmará automáticamente al sumarse el último pasajero.
             </div>
           )}
 

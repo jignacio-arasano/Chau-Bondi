@@ -73,8 +73,9 @@ module.exports = withAuth(async (req, res) => {
     try {
       const { tipo, zona_comun, barrio, fecha_hora, pasajeros_minimos, acompanantes } = req.body || {};
 
-      if (!tipo || !zona_comun || !barrio || !fecha_hora)
-        return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
+      // Sacamos "barrio" de la validación obligatoria
+      if (!tipo || !zona_comun || !fecha_hora)
+        return res.status(400).json({ error: 'Faltan campos obligatorios.' });
       if (!['IDA', 'VUELTA'].includes(tipo))
         return res.status(400).json({ error: 'Tipo debe ser IDA o VUELTA.' });
 
@@ -85,7 +86,6 @@ module.exports = withAuth(async (req, res) => {
       const minRequerido = pasajeros_minimos ? parseInt(pasajeros_minimos, 10) : 1;
       const acomps = acompanantes ? parseInt(acompanantes, 10) : 0;
       
-      // 👇 ACÁ ESTÁ LA MAGIA MATEMÁTICA
       const cupos_iniciales = 3 - acomps;
 
       const getDiaArg = (dateObj) => new Date(dateObj.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -120,9 +120,9 @@ module.exports = withAuth(async (req, res) => {
           id_creador: req.user.id, 
           tipo, 
           zona_comun, 
-          barrio: barrio.trim(),
+          barrio: barrio ? barrio.trim() : '', // Guardamos texto vacío si no lo mandan
           fecha_hora: fechaViaje.toISOString(), 
-          cupos_disponibles: cupos_iniciales, // Guardamos los lugares reales
+          cupos_disponibles: cupos_iniciales, 
           pasajeros_minimos: minRequerido,
           acompanantes: acomps
         })
