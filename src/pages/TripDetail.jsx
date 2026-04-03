@@ -8,7 +8,7 @@ function Stars({ rating }) {
   return <span className="stars">{'★'.repeat(r)}{'☆'.repeat(5 - r)}</span>;
 }
 
-function MemberRow({ member, puedeVerWA }) {
+function MemberRow({ member }) {
   if (member.es_amigo) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
@@ -64,7 +64,7 @@ export default function TripDetail() {
   const [deleting, setDeleting] = useState(false);
   const [error,   setError]   = useState('');
   const [confirm, setConfirm] = useState(false);
-  const [showInfo, setShowInfo] = useState(false); // 👇 Estado para el botoncito de info
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
     api.trips.get(id)
@@ -130,7 +130,7 @@ export default function TripDetail() {
   const horaStr = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
   const yaFue = fecha < new Date();
 
-  // 👇 MATEMÁTICA CORREGIDA PARA EL DETALLE 👇
+  // MATEMÁTICA CORREGIDA PARA EL DETALLE
   const totalOcupados = 3 - cupos_disponibles;
   const acomps = acompanantes || 0;
   const minRequerido = pasajeros_minimos || 1;
@@ -200,7 +200,8 @@ export default function TripDetail() {
             ))}
           </div>
 
-          {miembros.map((m, i) => <MemberRow key={i} member={m} puedeVerWA={puedeVerWA} />)}
+          {/* ACÁ ESTABA EL ERROR: Le saqué el puedeVerWA={puedeVerWA} que sobraba */}
+          {miembros.map((m, i) => <MemberRow key={i} member={m} />)}
 
           {cupos_disponibles > 0 && Array.from({ length: cupos_disponibles }).map((_, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)', opacity: 0.4 }}>
@@ -213,7 +214,6 @@ export default function TripDetail() {
         {activo && !yaFue && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             
-            {/* 👇 LÓGICA DE ALERTAS Y BOTÓN DE INFO 👇 */}
             <div style={{ marginBottom: '4px' }}>
               {viajeConfirmado ? (
                 <div className="alert alert-success" style={{ fontSize: '0.82rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -227,11 +227,10 @@ export default function TripDetail() {
                 </div>
               )}
               
-              {/* Caja explicativa desplegable */}
               {showInfo && (
                 <div className="fade-up" style={{ marginTop: '8px', padding: '12px', background: 'var(--bg3)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text2)', lineHeight: 1.5 }}>
                   {viajeConfirmado 
-                    ? "✅ Este viaje ya alcanzó el mínimo de pasajeros para salir, ¡pero aún se pueden sumar más! En ChauBondi un auto puede ir lleno con 4 personas, o salir con menos si el conductor así lo decidió."
+                    ? "✅ Este viaje ya alcanzó el mínimo de pasajeros para salir, ¡pero aún se pueden sumar más! En ChauBondi un auto puede ir lleno con 4 personas, o salir con menos si el organizador así lo decidió."
                     : `⏳ Este viaje está pendiente. Tiene ${totalGenteConfirmadaEnAuto} persona(s) confirmadas en el auto y quedan ${cupos_disponibles} lugares libres. El organizador definió que necesita al menos ${faltan} pasajero(s) más de la app para estar apto para salir.`
                   }
                 </div>
