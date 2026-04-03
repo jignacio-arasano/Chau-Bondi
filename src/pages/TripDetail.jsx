@@ -9,7 +9,6 @@ function Stars({ rating }) {
 }
 
 function MemberRow({ member, puedeVerWA }) {
-  // 👇 Si es una tarjeta fantasma de un amigo, la renderizamos distinta
   if (member.es_amigo) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
@@ -39,21 +38,15 @@ function MemberRow({ member, puedeVerWA }) {
         <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>
           {member.nombre} {member.apellido}
           {member.es_creador && (
-            <span className="badge badge-green" style={{ marginLeft: 8, fontSize: '0.65rem' }}>
-              Organizador
-            </span>
+            <span className="badge badge-green" style={{ marginLeft: 8, fontSize: '0.65rem' }}>Organizador</span>
           )}
         </div>
         <Stars rating={member.rating_promedio} />
       </div>
       {waLink ? (
-        <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-whatsapp btn-sm">
-          WhatsApp
-        </a>
+        <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-whatsapp btn-sm">WhatsApp</a>
       ) : (
-        <span style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>
-          🔒 Unite para ver
-        </span>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>🔒 Unite para ver</span>
       )}
     </div>
   );
@@ -71,6 +64,7 @@ export default function TripDetail() {
   const [deleting, setDeleting] = useState(false);
   const [error,   setError]   = useState('');
   const [confirm, setConfirm] = useState(false);
+  const [showInfo, setShowInfo] = useState(false); // 👇 Estado para el botoncito de info
 
   useEffect(() => {
     api.trips.get(id)
@@ -80,8 +74,7 @@ export default function TripDetail() {
   }, [id]);
 
   async function handleJoin() {
-    setJoining(true);
-    setError('');
+    setJoining(true); setError('');
     try {
       await api.trips.join(id); 
       const viajeActualizado = await api.trips.get(id); 
@@ -94,52 +87,36 @@ export default function TripDetail() {
     if (!confirm) { setConfirm(true); return; }
     setLeaving(true);
     try {
-      await api.trips.leave(id);
-      navigate('/', { replace: true });
-    } catch (err) {
-      setError(err.message); setLeaving(false); setConfirm(false);
-    }
+      await api.trips.leave(id); navigate('/', { replace: true });
+    } catch (err) { setError(err.message); setLeaving(false); setConfirm(false); }
   }
 
   async function handleDelete() {
     if (!confirm) { setConfirm(true); return; }
     setDeleting(true);
     try {
-      await api.trips.delete(id);
-      navigate('/', { replace: true });
-    } catch (err) {
-      setError(err.message); setDeleting(false); setConfirm(false);
-    }
+      await api.trips.delete(id); navigate('/', { replace: true });
+    } catch (err) { setError(err.message); setDeleting(false); setConfirm(false); }
   }
   
   function handleShare() {
     const origen = viaje.tipo === 'IDA' ? viaje.zona_comun.split('/')[0].trim() : 'Campus Siglo 21';
     const destino = viaje.tipo === 'IDA' ? 'Campus Siglo 21' : viaje.zona_comun.split('/')[0].trim();
     const horaStr = new Date(viaje.fecha_hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
-    
     const texto = `¡Sumate a mi viaje en ChauBondi! 🚌\n📍 De: ${origen}\n🏁 A: ${destino}\n🕒 Horario: ${horaStr} hs\n\n👉 Reservá tu lugar acá: ${window.location.href}`;
 
-    if (navigator.share) {
-      navigator.share({ title: 'Viaje en ChauBondi', text: texto }).catch((err) => console.log('Error al compartir', err));
-    } else {
-      window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
-    }
+    if (navigator.share) { navigator.share({ title: 'Viaje en ChauBondi', text: texto }).catch(err => console.log('Error', err)); } 
+    else { window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank'); }
   }
 
-  if (loading) return (
-    <div className="loading-screen">
-      <div className="spinner" />
-    </div>
-  );
+  if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
 
   if (error && !viaje) return (
     <div className="page">
       <div className="container" style={{ paddingTop: 60, textAlign: 'center' }}>
         <div style={{ fontSize: '3rem', marginBottom: 16 }}>🚫</div>
         <h2>Viaje no encontrado</h2>
-        <button className="btn btn-secondary" onClick={() => navigate('/')} style={{ marginTop: 20 }}>
-          ← Volver
-        </button>
+        <button className="btn btn-secondary" onClick={() => navigate('/')} style={{ marginTop: 20 }}>← Volver</button>
       </div>
     </div>
   );
@@ -153,33 +130,27 @@ export default function TripDetail() {
   const horaStr = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
   const yaFue = fecha < new Date();
 
-  // La matemática sigue intacta y perfecta
+  // 👇 MATEMÁTICA CORREGIDA PARA EL DETALLE 👇
   const totalOcupados = 3 - cupos_disponibles;
-  const pasajerosActuales = totalOcupados; 
+  const acomps = acompanantes || 0;
   const minRequerido = pasajeros_minimos || 1;
-  const viajeConfirmado = pasajerosActuales >= minRequerido;
-  const faltan = minRequerido - pasajerosActuales;
+  const pasajerosDeLaApp = totalOcupados - acomps; 
+  
+  const viajeConfirmado = pasajerosDeLaApp >= minRequerido;
+  const faltan = minRequerido - pasajerosDeLaApp;
+  const totalGenteConfirmadaEnAuto = 1 + acomps + pasajerosDeLaApp; // El conductor + sus amigos + la app
 
-  // 👇 Generamos las tarjetas falsas para los amigos
-  const amigosFantasma = Array.from({ length: acompanantes || 0 }).map((_, i) => ({
-    es_amigo: true,
-    nombre: 'Amigo/a',
-    apellido: `de ${creador_detalle?.nombre || ''}`,
+  const amigosFantasma = Array.from({ length: acomps }).map(() => ({
+    es_amigo: true, nombre: 'Amigo/a', apellido: `de ${creador_detalle?.nombre || ''}`,
   }));
 
-  // Las agregamos a la lista de miembros, justo después del creador
-  const miembros = [
-    creador_detalle,
-    ...amigosFantasma,
-    ...participantes
-  ].filter(Boolean);
+  const miembros = [creador_detalle, ...amigosFantasma, ...participantes].filter(Boolean);
 
   return (
     <div className="page">
       <div style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)', padding: '48px 24px 20px' }}>
         <div style={{ maxWidth: 480, margin: '0 auto' }}>
           <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: 'var(--text2)', fontSize: '1.4rem', cursor: 'pointer', padding: 0, marginBottom: 16 }}>←</button>
-
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
             <span className={`badge ${tipo === 'IDA' ? 'badge-green' : 'badge-orange'}`} style={{ fontSize: '0.8rem' }}>
               {tipo === 'IDA' ? '→ AL CAMPUS' : '← A CASA'}
@@ -187,7 +158,6 @@ export default function TripDetail() {
             {!activo && <span className="badge badge-gray">CANCELADO</span>}
             {yaFue  && activo && <span className="badge badge-gray">FINALIZADO</span>}
           </div>
-
           <div style={{ fontFamily: 'var(--font-head)', fontSize: '3.5rem', color: 'var(--green)', lineHeight: 1 }}>{horaStr}</div>
           <div style={{ color: 'var(--text2)', marginTop: 4, textTransform: 'capitalize' }}>{fechaStr}</div>
         </div>
@@ -230,7 +200,7 @@ export default function TripDetail() {
             ))}
           </div>
 
-          {miembros.map((m, i) => <MemberRow key={i} member={m} />)}
+          {miembros.map((m, i) => <MemberRow key={i} member={m} puedeVerWA={puedeVerWA} />)}
 
           {cupos_disponibles > 0 && Array.from({ length: cupos_disponibles }).map((_, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)', opacity: 0.4 }}>
@@ -243,22 +213,33 @@ export default function TripDetail() {
         {activo && !yaFue && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             
+            {/* 👇 LÓGICA DE ALERTAS Y BOTÓN DE INFO 👇 */}
             <div style={{ marginBottom: '4px' }}>
               {viajeConfirmado ? (
-                <div className="alert alert-success" style={{ fontSize: '0.82rem', textAlign: 'center' }}>
-                  ✅ <strong>¡Viaje Confirmado!</strong> Ya se alcanzó el mínimo de pasajeros para salir.
+                <div className="alert alert-success" style={{ fontSize: '0.82rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span>✅ <strong>¡Viaje Confirmado!</strong></span>
+                  <button onClick={() => setShowInfo(!showInfo)} style={{ background:'none', border:'none', marginLeft:6, cursor:'pointer', fontSize:'1rem' }}>ℹ️</button>
                 </div>
               ) : (
-                <div className="alert alert-warning" style={{ fontSize: '0.82rem', textAlign: 'center', backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeeba' }}>
-                  ⏳ <strong>Esperando gente:</strong> Faltan {faltan} persona{faltan > 1 ? 's' : ''} más para confirmar este viaje.
+                <div className="alert alert-warning" style={{ fontSize: '0.82rem', textAlign: 'center', backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeeba', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span>⏳ <strong>Esperando gente:</strong> Faltan {faltan} persona{faltan > 1 ? 's' : ''} más.</span>
+                  <button onClick={() => setShowInfo(!showInfo)} style={{ background:'none', border:'none', marginLeft:6, cursor:'pointer', fontSize:'1rem' }}>ℹ️</button>
+                </div>
+              )}
+              
+              {/* Caja explicativa desplegable */}
+              {showInfo && (
+                <div className="fade-up" style={{ marginTop: '8px', padding: '12px', background: 'var(--bg3)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text2)', lineHeight: 1.5 }}>
+                  {viajeConfirmado 
+                    ? "✅ Este viaje ya alcanzó el mínimo de pasajeros para salir, ¡pero aún se pueden sumar más! En ChauBondi un auto puede ir lleno con 4 personas, o salir con menos si el conductor así lo decidió."
+                    : `⏳ Este viaje está pendiente. Tiene ${totalGenteConfirmadaEnAuto} persona(s) confirmadas en el auto y quedan ${cupos_disponibles} lugares libres. El organizador definió que necesita al menos ${faltan} pasajero(s) más de la app para estar apto para salir.`
+                  }
                 </div>
               )}
             </div>
 
             {(es_creador || ya_es_pasajero) && cupos_disponibles > 0 && (
-              <button className="btn btn-whatsapp btn-full" onClick={handleShare} style={{ marginBottom: '8px' }}>
-                📲 Invitar compañeros por WhatsApp
-              </button>
+              <button className="btn btn-whatsapp btn-full" onClick={handleShare} style={{ marginBottom: '8px' }}>📲 Invitar compañeros por WhatsApp</button>
             )}
 
             {puede_unirse && (

@@ -8,7 +8,7 @@ const ZONAS_EMOJI = {
   'Terminal T2': '🚌',
   'Plaza Colón': '🌳',
   'Plaza Alberdi': '🌿',
-  'Mujer Urbana / Parque de las Naciones': '🏔️',
+  'Mujer Urbana': '🏔️',
   'Paseo del Jockey': '🏇',
   'Plaza Rivadavia': '⛪',
   'Farmacity de la Chacabuco': '💊',
@@ -34,15 +34,15 @@ export default function TripCard({ trip }) {
   const zonaLimpia = zona_comun.split('/')[0].trim();
   const icon = ZONAS_EMOJI[zonaLimpia] || (esIda ? '📍' : '🎓');
 
-  // Lógica de validación
-  const totalOcupados = 3 - cupos_disponibles;
+  // 👇 LÓGICA MATEMÁTICA CORREGIDA 👇
+  const acomps = acompanantes || 0;
   const minRequerido = pasajeros_minimos || 1;
-  const viajeConfirmado = totalOcupados >= minRequerido;
+  // Solo contamos a la gente real que se unió desde la app (restamos a los amigos del organizador)
+  const pasajerosDeLaApp = (3 - cupos_disponibles) - acomps; 
   
-  // Total de personas que se necesitan para salir (1 conductor + amigos + mínimo exigido)
-  const totalNecesarios = 1 + (acompanantes || 0) + minRequerido;
+  const viajeConfirmado = pasajerosDeLaApp >= minRequerido;
+  const totalNecesarios = 1 + acomps + minRequerido;
 
-  // Renderizado dinámico de Cupos (FOMO UX)
   let cuposUI;
   if (cupos_disponibles >= 3) {
     cuposUI = (
@@ -68,10 +68,8 @@ export default function TripCard({ trip }) {
   return (
     <Link to={`/trip/${id}`} className="card trip-card" style={{ display: 'flex', textDecoration: 'none', color: 'inherit' }}>
       
-      {/* Columna Izquierda: Fecha y Hora */}
       <div style={{
-        minWidth: 70, padding: '16px 12px',
-        borderRight: '1px solid var(--border)',
+        minWidth: 70, padding: '16px 12px', borderRight: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         background: 'var(--bg3)', borderTopLeftRadius: 14, borderBottomLeftRadius: 14
       }}>
@@ -80,10 +78,7 @@ export default function TripCard({ trip }) {
         <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--green)' }}>{horaStr}</div>
       </div>
 
-      {/* Columna Derecha: Detalles */}
       <div style={{ flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        
-        {/* Origen/Destino */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
           <div style={{ fontSize: '1.4rem', marginTop: 2 }}>{icon}</div>
           <div>
@@ -93,47 +88,30 @@ export default function TripCard({ trip }) {
               </span>
               <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{zona_comun}</span>
             </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text2)', marginTop: 4 }}>
-              {barrio}
-            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text2)', marginTop: 4 }}>{barrio}</div>
           </div>
         </div>
 
-        {/* Creador y Cupos */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          paddingTop: 12, borderTop: '1px solid var(--border)'
-        }}>
-          {/* Creador */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div className="avatar avatar-sm">
-              {profiles?.nombre?.[0]}{profiles?.apellido?.[0]}
-            </div>
+            <div className="avatar avatar-sm">{profiles?.nombre?.[0]}{profiles?.apellido?.[0]}</div>
             <div>
               <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{profiles?.nombre}</div>
               <Stars rating={profiles?.rating_promedio} />
             </div>
           </div>
 
-          {/* Cupos y Condición */}
           <div style={{ textAlign: 'right' }}>
-            
-            {/* Dibujamos el FOMO UI dinámico */}
             {cuposUI}
-            
-            {/* Etiqueta de Confirmación / Condición */}
             <div style={{ marginTop: '2px' }}>
               {viajeConfirmado ? (
-                <span style={{ fontSize: '0.65rem', color: 'var(--green)', fontWeight: 600 }}>
-                  ✓ Confirmado
-                </span>
+                <span style={{ fontSize: '0.65rem', color: 'var(--green)', fontWeight: 600 }}>✓ Confirmado</span>
               ) : (
                 <span style={{ fontSize: '0.65rem', color: '#d97706', fontWeight: 600 }}>
                   {totalNecesarios >= 4 ? 'Sale si se llena el auto' : `Sale con ${totalNecesarios}`}
                 </span>
               )}
             </div>
-
           </div>
         </div>
       </div>
