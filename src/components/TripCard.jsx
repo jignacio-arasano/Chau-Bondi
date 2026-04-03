@@ -34,10 +34,8 @@ export default function TripCard({ trip }) {
   const zonaLimpia = zona_comun.split('/')[0].trim();
   const icon = ZONAS_EMOJI[zonaLimpia] || (esIda ? '📍' : '🎓');
 
-  // 👇 LÓGICA MATEMÁTICA CORREGIDA 👇
   const acomps = acompanantes || 0;
   const minRequerido = pasajeros_minimos || 1;
-  // Solo contamos a la gente real que se unió desde la app (restamos a los amigos del organizador)
   const pasajerosDeLaApp = (3 - cupos_disponibles) - acomps; 
   
   const viajeConfirmado = pasajerosDeLaApp >= minRequerido;
@@ -108,7 +106,7 @@ export default function TripCard({ trip }) {
                 <span style={{ fontSize: '0.65rem', color: 'var(--green)', fontWeight: 600 }}>✓ Confirmado</span>
               ) : (
                 <span style={{ fontSize: '0.65rem', color: '#d97706', fontWeight: 600 }}>
-                  {totalNecesarios >= 4 ? 'Sale si se llena el auto' : `Sale con ${totalNecesarios}`}
+                  {totalNecesarios >= 4 ? 'Sale si se llena' : `Puede salir con ${totalNecesarios} personas`}
                 </span>
               )}
             </div>
