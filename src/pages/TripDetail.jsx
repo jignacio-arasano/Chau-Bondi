@@ -22,7 +22,11 @@ function MemberRow({ member }) {
     );
   }
 
-  const initials = `${member.nombre[0]}${member.apellido[0]}`;
+  // 👇 LÓGICA CORREGIDA PARA EL AVATAR (EVITA EL "Vundefined") 👇
+  const inicialNombre = member.nombre ? member.nombre[0].toUpperCase() : '';
+  const inicialApellido = (member.apellido && member.apellido.length > 0) ? member.apellido[0].toUpperCase() : '';
+  const initials = `${inicialNombre}${inicialApellido}`;
+
   const waLink   = member.whatsapp
     ? `https://wa.me/54${member.whatsapp}?text=${encodeURIComponent('¡Hola! Te escribo por el viaje de ChauBondi 🚌')}`
     : null;
@@ -99,11 +103,22 @@ export default function TripDetail() {
     } catch (err) { setError(err.message); setDeleting(false); setConfirm(false); }
   }
   
+  // 👇 LÓGICA NUEVA PARA EL MENSAJE DE WHATSAPP CON FOMO 👇
   function handleShare() {
     const origen = viaje.tipo === 'IDA' ? viaje.zona_comun.split('/')[0].trim() : 'Campus Siglo 21';
     const destino = viaje.tipo === 'IDA' ? 'Campus Siglo 21' : viaje.zona_comun.split('/')[0].trim();
     const horaStr = new Date(viaje.fecha_hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
-    const texto = `¡Sumate a mi viaje en ChauBondi! 🚌\n📍 De: ${origen}\n🏁 A: ${destino}\n🕒 Horario: ${horaStr} hs\n\n👉 Reservá tu lugar acá: ${window.location.href}`;
+    
+    let cuposTexto = '';
+    if (viaje.cupos_disponibles >= 3) {
+      cuposTexto = `(Quedan ${viaje.cupos_disponibles} lugares libres)`;
+    } else if (viaje.cupos_disponibles === 2) {
+      cuposTexto = `(⏳ Últimos 2 lugares)`;
+    } else if (viaje.cupos_disponibles === 1) {
+      cuposTexto = `(🔥 ¡Último lugar!)`;
+    }
+
+    const texto = `¡Sumate a mi viaje en ChauBondi! 🚌\n📍 De: ${origen}\n🏁 A: ${destino}\n🕒 Horario: ${horaStr} hs\n🎫 ${cuposTexto}\n\n👉 Reservá tu lugar acá: ${window.location.href}`;
 
     if (navigator.share) { navigator.share({ title: 'Viaje en ChauBondi', text: texto }).catch(err => console.log('Error', err)); } 
     else { window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank'); }
@@ -200,7 +215,6 @@ export default function TripDetail() {
             ))}
           </div>
 
-          {/* ACÁ ESTABA EL ERROR: Le saqué el puedeVerWA={puedeVerWA} que sobraba */}
           {miembros.map((m, i) => <MemberRow key={i} member={m} />)}
 
           {cupos_disponibles > 0 && Array.from({ length: cupos_disponibles }).map((_, i) => (
@@ -230,7 +244,7 @@ export default function TripDetail() {
               {showInfo && (
                 <div className="fade-up" style={{ marginTop: '8px', padding: '12px', background: 'var(--bg3)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text2)', lineHeight: 1.5 }}>
                   {viajeConfirmado 
-                    ? "✅ Este viaje ya alcanzó el mínimo de pasajeros para salir, ¡pero aún se pueden sumar más! En ChauBondi un auto puede ir lleno con 4 personas, o salir con menos si el organizador así lo decidió."
+                    ? "✅ Este viaje ya alcanzó el mínimo de pasajeros para salir, ¡pero aún se pueden sumar más! En ChauBondi un auto puede ir lleno con 4 personas, o salir con menos si el conductor así lo decidió."
                     : `⏳ Este viaje está pendiente. Tiene ${totalGenteConfirmadaEnAuto} persona(s) confirmadas en el auto y quedan ${cupos_disponibles} lugares libres. El organizador definió que necesita al menos ${faltan} pasajero(s) más de la app para estar apto para salir.`
                   }
                 </div>
