@@ -4,8 +4,8 @@ import { api } from '../api';
 
 const ZONAS_POR_BARRIO = {
   'Nueva Córdoba': [
-    'Patio Olmos', 'Buen Pastor', 'Plaza España', 
-    'Farmacity de la Chacabuco', 'Chacabuco e Illia', 
+    'Patio Olmos', 'Buen Pastor', 'Plaza España',
+    'Farmacity de la Chacabuco', 'Chacabuco e Illia',
     'Buenos Aires y Estrada', 'Rondeau y Paraná'
   ],
   'Centro': [
@@ -22,25 +22,25 @@ export default function CreateTrip() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     tipo: 'IDA',
-    zona_comun: '', 
-    barrio: '',     
+    zona_comun: '',
+    barrio: '',
     fecha: '',
     hora: ''
   });
-  
-  const [barrioEncuentro, setBarrioEncuentro] = useState(''); 
 
-  const [pasajerosMinimos, setPasajerosMinimos] = useState('1'); 
+  const [barrioEncuentro, setBarrioEncuentro] = useState('');
+
+  const [pasajerosMinimos, setPasajerosMinimos] = useState('1');
   const [acompanantes, setAcompanantes] = useState('0');
-  
-  const [error,   setError]   = useState('');
+
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const ac = parseInt(acompanantes, 10);
     const pm = parseInt(pasajerosMinimos, 10);
     const maxPermitido = 3 - ac;
-    
+
     if (pm > maxPermitido) {
       setPasajerosMinimos(maxPermitido.toString());
     }
@@ -68,9 +68,9 @@ export default function CreateTrip() {
     setError('');
     try {
       const viaje = await api.trips.create({
-        tipo:       form.tipo,
+        tipo: form.tipo,
         zona_comun: form.zona_comun,
-        barrio:     form.barrio,
+        barrio: form.barrio,
         fecha_hora,
         pasajeros_minimos: minReq,
         acompanantes: parseInt(acompanantes, 10)
@@ -83,8 +83,8 @@ export default function CreateTrip() {
     }
   }
 
-  const today    = new Date().toISOString().split('T')[0];
-  const esIda    = form.tipo === 'IDA';
+  const today = new Date().toISOString().split('T')[0];
+  const esIda = form.tipo === 'IDA';
 
   return (
     <div className="page">
@@ -101,7 +101,15 @@ export default function CreateTrip() {
       </div>
 
       <div className="container" style={{ paddingTop: 28 }}>
-        {error && <div className="alert alert-error" style={{ marginBottom: 20 }}>{error}</div>}
+        {error && (
+          <div className="toast-container">
+            <div className="toast toast-error">
+              <span className="toast-icon">⚠️</span>
+              <span className="toast-message">{error}</span>
+              <button className="toast-close" onClick={() => setError('')}>&times;</button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div className="input-group">

@@ -27,7 +27,7 @@ function MemberRow({ member }) {
   const inicialApellido = (member.apellido && member.apellido.length > 0) ? member.apellido[0].toUpperCase() : '';
   const initials = `${inicialNombre}${inicialApellido}`;
 
-  const waLink   = member.whatsapp
+  const waLink = member.whatsapp
     ? `https://wa.me/54${member.whatsapp}?text=${encodeURIComponent('¡Hola! Te escribo por el viaje de ChauBondi 🚌')}`
     : null;
 
@@ -57,16 +57,16 @@ function MemberRow({ member }) {
 }
 
 export default function TripDetail() {
-  const { id }    = useParams();
-  const navigate  = useNavigate();
-  const { user }  = useAuth();
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const [viaje,   setViaje]   = useState(null);
+  const [viaje, setViaje] = useState(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error,   setError]   = useState('');
+  const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
@@ -80,10 +80,10 @@ export default function TripDetail() {
   async function handleJoin() {
     setJoining(true); setError('');
     try {
-      await api.trips.join(id); 
-      const viajeActualizado = await api.trips.get(id); 
-      setViaje(viajeActualizado); 
-    } catch (err) { setError(err.message); } 
+      await api.trips.join(id);
+      const viajeActualizado = await api.trips.get(id);
+      setViaje(viajeActualizado);
+    } catch (err) { setError(err.message); }
     finally { setJoining(false); }
   }
 
@@ -102,13 +102,13 @@ export default function TripDetail() {
       await api.trips.delete(id); navigate('/', { replace: true });
     } catch (err) { setError(err.message); setDeleting(false); setConfirm(false); }
   }
-  
+
   // 👇 LÓGICA NUEVA PARA EL MENSAJE DE WHATSAPP CON FOMO 👇
   function handleShare() {
     const origen = viaje.tipo === 'IDA' ? viaje.zona_comun.split('/')[0].trim() : 'Campus Siglo 21';
     const destino = viaje.tipo === 'IDA' ? 'Campus Siglo 21' : viaje.zona_comun.split('/')[0].trim();
     const horaStr = new Date(viaje.fecha_hora).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
-    
+
     let cuposTexto = '';
     if (viaje.cupos_disponibles >= 3) {
       cuposTexto = `(Quedan ${viaje.cupos_disponibles} lugares libres)`;
@@ -120,7 +120,7 @@ export default function TripDetail() {
 
     const texto = `¡Sumate a mi viaje en ChauBondi! 🚌\n📍 De: ${origen}\n🏁 A: ${destino}\n🕒 Horario: ${horaStr} hs\n🎫 ${cuposTexto}\n\n👉 Reservá tu lugar acá: ${window.location.href}`;
 
-    if (navigator.share) { navigator.share({ title: 'Viaje en ChauBondi', text: texto }).catch(err => console.log('Error', err)); } 
+    if (navigator.share) { navigator.share({ title: 'Viaje en ChauBondi', text: texto }).catch(err => console.log('Error', err)); }
     else { window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank'); }
   }
 
@@ -137,8 +137,8 @@ export default function TripDetail() {
   );
 
   const { tipo, zona_comun, barrio, fecha_hora, cupos_disponibles, activo,
-          profiles, participantes, creador_detalle, pasajeros_minimos, acompanantes,
-          puede_unirse, es_creador, ya_es_pasajero } = viaje;
+    profiles, participantes, creador_detalle, pasajeros_minimos, acompanantes,
+    puede_unirse, es_creador, ya_es_pasajero } = viaje;
 
   const fecha = new Date(fecha_hora);
   const fechaStr = fecha.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Argentina/Cordoba' });
@@ -149,8 +149,8 @@ export default function TripDetail() {
   const totalOcupados = 3 - cupos_disponibles;
   const acomps = acompanantes || 0;
   const minRequerido = pasajeros_minimos || 1;
-  const pasajerosDeLaApp = totalOcupados - acomps; 
-  
+  const pasajerosDeLaApp = totalOcupados - acomps;
+
   const viajeConfirmado = pasajerosDeLaApp >= minRequerido;
   const faltan = minRequerido - pasajerosDeLaApp;
   const totalGenteConfirmadaEnAuto = 1 + acomps + pasajerosDeLaApp; // El conductor + sus amigos + la app
@@ -171,7 +171,7 @@ export default function TripDetail() {
               {tipo === 'IDA' ? '→ AL CAMPUS' : '← A CASA'}
             </span>
             {!activo && <span className="badge badge-gray">CANCELADO</span>}
-            {yaFue  && activo && <span className="badge badge-gray">FINALIZADO</span>}
+            {yaFue && activo && <span className="badge badge-gray">FINALIZADO</span>}
           </div>
           <div style={{ fontFamily: 'var(--font-head)', fontSize: '3.5rem', color: 'var(--green)', lineHeight: 1 }}>{horaStr}</div>
           <div style={{ color: 'var(--text2)', marginTop: 4, textTransform: 'capitalize' }}>{fechaStr}</div>
@@ -179,7 +179,15 @@ export default function TripDetail() {
       </div>
 
       <div className="container" style={{ paddingTop: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {error && <div className="alert alert-error">{error}</div>}
+        {error && (
+          <div className="toast-container">
+            <div className="toast toast-error">
+              <span className="toast-icon">⚠️</span>
+              <span className="toast-message">{error}</span>
+              <button className="toast-close" onClick={() => setError('')}>&times;</button>
+            </div>
+          </div>
+        )}
 
         <div className="card">
           <h3 style={{ fontSize: '0.75rem', color: 'var(--text2)', letterSpacing: '0.08em', marginBottom: 14 }}>RUTA</h3>
@@ -210,7 +218,7 @@ export default function TripDetail() {
           </h3>
 
           <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-            {[0,1,2,3].map(i => (
+            {[0, 1, 2, 3].map(i => (
               <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i <= totalOcupados ? 'var(--green)' : 'var(--border2)' }} />
             ))}
           </div>
@@ -227,23 +235,23 @@ export default function TripDetail() {
 
         {activo && !yaFue && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            
+
             <div style={{ marginBottom: '4px' }}>
               {viajeConfirmado ? (
                 <div className="alert alert-success" style={{ fontSize: '0.82rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span>✅ <strong>¡Viaje Confirmado!</strong></span>
-                  <button onClick={() => setShowInfo(!showInfo)} style={{ background:'none', border:'none', marginLeft:6, cursor:'pointer', fontSize:'1rem' }}>ℹ️</button>
+                  <button onClick={() => setShowInfo(!showInfo)} style={{ background: 'none', border: 'none', marginLeft: 6, cursor: 'pointer', fontSize: '1rem' }}>ℹ️</button>
                 </div>
               ) : (
                 <div className="alert alert-warning" style={{ fontSize: '0.82rem', textAlign: 'center', backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeeba', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span>⏳ <strong>Esperando gente:</strong> Faltan {faltan} persona{faltan > 1 ? 's' : ''} más.</span>
-                  <button onClick={() => setShowInfo(!showInfo)} style={{ background:'none', border:'none', marginLeft:6, cursor:'pointer', fontSize:'1rem' }}>ℹ️</button>
+                  <button onClick={() => setShowInfo(!showInfo)} style={{ background: 'none', border: 'none', marginLeft: 6, cursor: 'pointer', fontSize: '1rem' }}>ℹ️</button>
                 </div>
               )}
-              
+
               {showInfo && (
                 <div className="fade-up" style={{ marginTop: '8px', padding: '12px', background: 'var(--bg3)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text2)', lineHeight: 1.5 }}>
-                  {viajeConfirmado 
+                  {viajeConfirmado
                     ? "✅ Este viaje ya alcanzó el mínimo de pasajeros para salir, ¡pero aún se pueden sumar más! En ChauBondi un auto puede ir lleno con 4 personas, o salir con menos si el conductor así lo decidió."
                     : `⏳ Este viaje está pendiente. Tiene ${totalGenteConfirmadaEnAuto} persona(s) confirmadas en el auto y quedan ${cupos_disponibles} lugares libres. El organizador definió que necesita al menos ${faltan} pasajero(s) más de la app para estar apto para salir.`
                   }
